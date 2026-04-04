@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Finanças MPS</title>
+  <style>
+    body {
+      background: #0f172a;
+      color: white;
+      font-family: Arial;
+      padding: 20px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>💰 Finanças MPS</h1>
+
+<h2>Saldo: R$ <span id="saldo">0</span></h2>
+
+<input type="number" id="valor" placeholder="Digite valor">
+<button onclick="adicionar()">Adicionar</button>
+
+<script>
+let saldo = 0;
+
+function adicionar() {
+  let valor = Number(document.getElementById("valor").value);
+  saldo += valor;
+  document.getElementById("saldo").innerText = saldo;
+}
+</script>
+
+</body>
+</html>
