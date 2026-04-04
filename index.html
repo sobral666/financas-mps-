@@ -13,6 +13,11 @@
     input, button {
       padding: 10px;
       margin: 5px;
+      border-radius: 8px;
+      border: none;
+    }
+    button {
+      cursor: pointer;
     }
     .box {
       margin-top: 20px;
@@ -53,7 +58,7 @@
 </div>
 
 <script>
-const supabase = supabase.createClient(
+const supabaseClient = supabase.createClient(
   "https://hhbgoratecpjfhohowoe.supabase.co",
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
 );
@@ -66,12 +71,15 @@ async function login() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
     password: senha
   });
 
-  if (error) return alert(error.message);
+  if (error) {
+    alert("Erro: " + error.message);
+    return;
+  }
 
   user = data.user;
   iniciar();
@@ -82,32 +90,17 @@ async function signup() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password: senha,
-    options: {
-      emailRedirectTo: window.location.origin
-    }
-  });
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  alert("Conta criada! Agora clica em ENTRAR 👇");
-}
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
-
-  const { error } = await supabase.auth.signUp({
+  const { error } = await supabaseClient.auth.signUp({
     email,
     password: senha
   });
 
-  if (error) return alert(error.message);
+  if (error) {
+    alert("Erro: " + error.message);
+    return;
+  }
 
-  alert("Conta criada!");
+  alert("Conta criada! Agora clica em ENTRAR 👇");
 }
 
 // INICIAR APP
@@ -130,18 +123,26 @@ async function addDivida() {
   const nome = document.getElementById("nome").value;
   const valor = document.getElementById("valorDivida").value;
 
-  await supabase.from("dividas").insert([
+  const { error } = await supabaseClient.from("dividas").insert([
     { user_id: user.id, nome, valor }
   ]);
+
+  if (error) {
+    alert("Erro ao salvar");
+    return;
+  }
 
   carregarDividas();
 }
 
+// LISTAR
 async function carregarDividas() {
-  const { data } = await supabase
+  const { data, error } = await supabaseClient
     .from("dividas")
     .select("*")
     .eq("user_id", user.id);
+
+  if (error) return;
 
   const lista = document.getElementById("lista");
   lista.innerHTML = "";
