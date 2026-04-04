@@ -3,58 +3,105 @@
 <head>
   <title>Finanças MPS</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
   <style>
     body {
-      background: #0f172a;
+      margin: 0;
+      background: #020617;
       color: white;
       font-family: Arial;
+    }
+
+    .container {
       padding: 20px;
     }
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 8px;
-      border: none;
+
+    .card {
+      background: #0f172a;
+      padding: 20px;
+      border-radius: 16px;
+      margin-top: 15px;
     }
-    button {
-      cursor: pointer;
-    }
-    .box {
-      margin-top: 20px;
-      padding: 10px;
-      background: #1e293b;
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
       border-radius: 10px;
+      border: none;
+      background: #020617;
+      color: white;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 10px;
+      border: none;
+      background: #22c55e;
+      color: white;
+      font-weight: bold;
+    }
+
+    .danger {
+      background: #ef4444;
+    }
+
+    .saldo {
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    li {
+      background: #020617;
+      padding: 10px;
+      border-radius: 10px;
+      margin-top: 5px;
     }
   </style>
 </head>
+
 <body>
+
+<div class="container">
 
 <h1>💰 Finanças MPS</h1>
 
-<div id="login">
-  <h3>Login</h3>
-  <input id="email" placeholder="Email"><br>
-  <input id="senha" type="password" placeholder="Senha"><br>
+<div id="login" class="card">
+  <input id="email" placeholder="Email">
+  <input id="senha" type="password" placeholder="Senha">
   <button onclick="login()">Entrar</button>
   <button onclick="signup()">Criar conta</button>
 </div>
 
 <div id="app" style="display:none;">
-  <h2>Saldo: R$ <span id="saldo">0</span></h2>
 
-  <input type="number" id="valor" placeholder="Valor">
-  <button onclick="adicionar()">Adicionar</button>
+  <div class="card">
+    <div class="saldo">R$ <span id="saldo">0</span></div>
 
-  <div class="box">
+    <input id="valor" placeholder="Valor">
+    <button onclick="addEntrada()">Entrada</button>
+    <button class="danger" onclick="addSaida()">Saída</button>
+  </div>
+
+  <div class="card">
+    <h3>📊 Histórico</h3>
+    <ul id="historico"></ul>
+  </div>
+
+  <div class="card">
     <h3>🧾 Me Devem</h3>
-    <input id="nome" placeholder="Nome">
-    <input id="valorDivida" placeholder="Valor">
+    <input id="nome">
+    <input id="valorDivida">
     <button onclick="addDivida()">Adicionar</button>
-
     <ul id="lista"></ul>
   </div>
 
   <button onclick="logout()">Sair</button>
+
+</div>
+
 </div>
 
 <script>
@@ -64,89 +111,98 @@ const supabaseClient = supabase.createClient(
 );
 
 let user = null;
-let saldo = 0;
 
 // LOGIN
 async function login() {
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
-
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password: senha
+  const { data } = await supabaseClient.auth.signInWithPassword({
+    email: email.value,
+    password: senha.value
   });
-
-  if (error) {
-    alert("Erro: " + error.message);
-    return;
-  }
 
   user = data.user;
   iniciar();
 }
 
-// CADASTRO
+// SIGNUP
 async function signup() {
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
-
-  const { error } = await supabaseClient.auth.signUp({
-    email,
-    password: senha
+  await supabaseClient.auth.signUp({
+    email: email.value,
+    password: senha.value
   });
-
-  if (error) {
-    alert("Erro: " + error.message);
-    return;
-  }
-
-  alert("Conta criada! Agora clica em ENTRAR 👇");
+  alert("Conta criada");
 }
 
-// INICIAR APP
+// INICIAR
 async function iniciar() {
-  document.getElementById("login").style.display = "none";
-  document.getElementById("app").style.display = "block";
+  login.style.display = "none";
+  app.style.display = "block";
 
+  carregarSaldo();
+  carregarHistorico();
   carregarDividas();
 }
 
 // SALDO
-function adicionar() {
-  let valor = Number(document.getElementById("valor").value);
-  saldo += valor;
-  document.getElementById("saldo").innerText = saldo;
+async function carregarSaldo() {
+  const { data } = await supabaseClient
+    .from("transacoes")
+    .select("*")
+    .eq("user_id", user.id);
+
+  let total = 0;
+  data.forEach(t => {
+    total += t.tipo === "entrada" ? t.valor : -t.valor;
+  });
+
+  saldo.innerText = total;
+}
+
+// ENTRADA
+async function addEntrada() {
+  await supabaseClient.from("transacoes").insert([
+    { user_id: user.id, valor: Number(valor.value), tipo: "entrada" }
+  ]);
+  atualizar();
+}
+
+// SAÍDA
+async function addSaida() {
+  await supabaseClient.from("transacoes").insert([
+    { user_id: user.id, valor: Number(valor.value), tipo: "saida" }
+  ]);
+  atualizar();
+}
+
+// HISTÓRICO
+async function carregarHistorico() {
+  const { data } = await supabaseClient
+    .from("transacoes")
+    .select("*")
+    .eq("user_id", user.id);
+
+  historico.innerHTML = "";
+  data.forEach(t => {
+    const li = document.createElement("li");
+    li.innerText = `${t.tipo} - R$ ${t.valor}`;
+    historico.appendChild(li);
+  });
 }
 
 // DIVIDAS
 async function addDivida() {
-  const nome = document.getElementById("nome").value;
-  const valor = document.getElementById("valorDivida").value;
-
-  const { error } = await supabaseClient.from("dividas").insert([
-    { user_id: user.id, nome, valor }
+  await supabaseClient.from("dividas").insert([
+    { user_id: user.id, nome: nome.value, valor: valorDivida.value }
   ]);
-
-  if (error) {
-    alert("Erro ao salvar");
-    return;
-  }
-
   carregarDividas();
 }
 
-// LISTAR
 async function carregarDividas() {
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
     .from("dividas")
     .select("*")
     .eq("user_id", user.id);
 
-  if (error) return;
-
-  const lista = document.getElementById("lista");
   lista.innerHTML = "";
-
   data.forEach(d => {
     const li = document.createElement("li");
     li.innerText = `${d.nome} - R$ ${d.valor}`;
@@ -154,7 +210,11 @@ async function carregarDividas() {
   });
 }
 
-// LOGOUT
+function atualizar() {
+  carregarSaldo();
+  carregarHistorico();
+}
+
 function logout() {
   location.reload();
 }
