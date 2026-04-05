@@ -76,6 +76,7 @@ button {
 
 <script>
 
+// SUPABASE
 const supabaseClient = window.supabase.createClient(
   "https://hhbgoratecpjfhohowoe.supabase.co",
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
@@ -138,12 +139,7 @@ function entrar() {
   document.getElementById("app").style.display = "block";
 }
 
-// LOGOUT
-function logout() {
-  location.reload();
-}
-
-</script>// AUTO LOGIN (SE JÁ ESTIVER LOGADO)
+// AUTO LOGIN (SE JÁ ESTIVER LOGADO)
 async function verificarSessao() {
   const { data } = await supabaseClient.auth.getSession();
 
@@ -154,6 +150,13 @@ async function verificarSessao() {
 }
 
 verificarSessao();
+
+// LOGOUT
+function logout() {
+  location.reload();
+}
+
+</script>
 
 </body>
 </html>
