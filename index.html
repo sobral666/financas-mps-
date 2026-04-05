@@ -76,7 +76,6 @@ button {
 
 <script>
 
-// SUPABASE
 const supabaseClient = window.supabase.createClient(
   "https://hhbgoratecpjfhohowoe.supabase.co",
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
@@ -84,7 +83,7 @@ const supabaseClient = window.supabase.createClient(
 
 let user = null;
 
-// LOGIN
+// LOGIN NORMAL
 async function login() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
@@ -103,12 +102,12 @@ async function login() {
   entrar();
 }
 
-// CADASTRO + LOGIN AUTOMÁTICO
+// CADASTRO (SEM LOGIN DUPLO)
 async function signup() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
 
-  const { error } = await supabaseClient.auth.signUp({
+  const { data, error } = await supabaseClient.auth.signUp({
     email,
     password: senha
   });
@@ -118,28 +117,22 @@ async function signup() {
     return;
   }
 
-  // login automático
-  const { data, error: loginError } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password: senha
-  });
-
-  if (loginError) {
-    alert("Conta criada! Agora clica em entrar");
-    return;
+  // IMPORTANTE: Supabase já loga automaticamente
+  if (data.session) {
+    user = data.user;
+    entrar();
+  } else {
+    alert("Conta criada! Agora faça login.");
   }
-
-  user = data.user;
-  entrar();
 }
 
-// ENTRAR NO APP
+// ENTRAR
 function entrar() {
   document.getElementById("login").style.display = "none";
   document.getElementById("app").style.display = "block";
 }
 
-// AUTO LOGIN (SE JÁ ESTIVER LOGADO)
+// AUTO LOGIN
 async function verificarSessao() {
   const { data } = await supabaseClient.auth.getSession();
 
@@ -152,7 +145,8 @@ async function verificarSessao() {
 verificarSessao();
 
 // LOGOUT
-function logout() {
+async function logout() {
+  await supabaseClient.auth.signOut();
   location.reload();
 }
 
