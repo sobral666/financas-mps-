@@ -32,7 +32,7 @@ body {
   margin-top: 15px;
 }
 
-input, button {
+input, select, button {
   width: 100%;
   padding: 12px;
   margin-top: 10px;
@@ -44,6 +44,22 @@ button {
   background: #22c55e;
   color: white;
   font-weight: bold;
+}
+
+.danger {
+  background: #ef4444;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  background: rgba(0,0,0,0.6);
+  padding: 10px;
+  margin-top: 5px;
+  border-radius: 10px;
 }
 </style>
 </head>
@@ -58,85 +74,224 @@ button {
 <div id="login" class="card">
   <input id="email" placeholder="Email">
   <input id="senha" type="password" placeholder="Senha">
-
   <button onclick="login()">Entrar</button>
   <button onclick="signup()">Criar conta</button>
 </div>
 
 <!-- APP -->
-<div id="app" style="display:none;" class="card">
-  <h2>🎉 LOGADO COM SUCESSO</h2>
-  <p>Agora seu app está funcionando</p>
-  <button onclick="logout()">Sair</button>
+<div id="app" style="display:none;">
+
+<div class="card">
+  <h2>💰 Saldo: R$ <span id="saldo">0</span></h2>
+
+  <input id="valor" placeholder="Valor">
+  
+  <select id="tipo">
+    <option value="entrada">Entrada</option>
+    <option value="saida">Saída</option>
+  </select>
+
+  <select id="categoria">
+    <option>Salário</option>
+    <option>Comida</option>
+    <option>Transporte</option>
+    <option>Material</option>
+  </select>
+
+  <button onclick="addTransacao()">Adicionar</button>
+</div>
+
+<div class="card">
+  <h3>📊 Histórico</h3>
+  <ul id="transacoes"></ul>
+</div>
+
+<div class="card">
+  <h3>🧾 Dívidas</h3>
+
+  <input id="nome" placeholder="Nome">
+  <input id="valorDivida" placeholder="Valor total">
+  <input id="parcelas" placeholder="Parcelas">
+
+  <button onclick="addDivida()">Adicionar</button>
+
+  <ul id="lista"></ul>
+</div>
+
+<button class="danger" onclick="logout()">Sair</button>
+
 </div>
 
 </div>
 
 <script>
 
-const supabaseClient = window.supabase.createClient(
+const supabase = window.supabase.createClient(
   "https://hhbgoratecpjfhohowoe.supabase.co",
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
 );
 
-// FUNÇÃO ENTRAR (FORÇADA)
+let user = null;
+
+// ENTRAR
 function entrar() {
   document.getElementById("login").style.display = "none";
   document.getElementById("app").style.display = "block";
+  carregarTudo();
 }
 
 // LOGIN
 async function login() {
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
+  const email = emailInput();
+  const senha = senhaInput();
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password: senha
   });
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+  if (error) return alert(error.message);
 
-  alert("Login OK");
+  user = data.user;
   entrar();
 }
 
 // CADASTRO
 async function signup() {
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
+  const email = emailInput();
+  const senha = senhaInput();
 
-  const { data, error } = await supabaseClient.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password: senha
   });
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  alert("Conta criada e já logada!");
-  entrar();
-}
-
-// AUTO LOGIN (IMPORTANTÍSSIMO)
-async function verificarSessao() {
-  const { data } = await supabaseClient.auth.getSession();
+  if (error) return alert(error.message);
 
   if (data.session) {
+    user = data.user;
+    entrar();
+  } else {
+    alert("Conta criada! Faça login.");
+  }
+}
+
+// AUTO LOGIN
+async function verificarSessao() {
+  const { data } = await supabase.auth.getSession();
+
+  if (data.session) {
+    user = data.session.user;
     entrar();
   }
 }
-
 verificarSessao();
+
+// TRANSAÇÕES
+async function addTransacao() {
+  const valor = Number(document.getElementById("valor").value);
+  const tipo = document.getElementById("tipo").value;
+  const categoria = document.getElementById("categoria").value;
+
+  await supabase.from("transacoes").insert([
+    { user_id: user.id, valor, tipo, categoria }
+  ]);
+
+  carregarTransacoes();
+}
+
+// CARREGAR
+async function carregarTudo() {
+  carregarTransacoes();
+  carregarDividas();
+}
+
+async function carregarTransacoes() {
+  const { data } = await supabase
+    .from("transacoes")
+    .select("*")
+    .eq("user_id", user.id);
+
+  let saldo = 0;
+  const lista = document.getElementById("transacoes");
+  lista.innerHTML = "";
+
+  data.forEach(t => {
+    if (t.tipo === "entrada") saldo += t.valor;
+    else saldo -= t.valor;
+
+    const li = document.createElement("li");
+    li.innerText = `${t.tipo} - ${t.categoria} - R$ ${t.valor}`;
+    lista.appendChild(li);
+  });
+
+  document.getElementById("saldo").innerText = saldo;
+}
+
+// DIVIDAS
+async function addDivida() {
+  const nome = document.getElementById("nome").value;
+  const valor = document.getElementById("valorDivida").value;
+  const parcelas = document.getElementById("parcelas").value;
+
+  await supabase.from("dividas").insert([
+    {
+      user_id: user.id,
+      nome,
+      valor,
+      parcelas,
+      parcelas_pagas: 0
+    }
+  ]);
+
+  carregarDividas();
+}
+
+async function pagarParcela(id, pagas) {
+  await supabase
+    .from("dividas")
+    .update({ parcelas_pagas: pagas + 1 })
+    .eq("id", id);
+
+  carregarDividas();
+}
+
+async function carregarDividas() {
+  const { data } = await supabase
+    .from("dividas")
+    .select("*")
+    .eq("user_id", user.id);
+
+  const lista = document.getElementById("lista");
+  lista.innerHTML = "";
+
+  data.forEach(d => {
+    const li = document.createElement("li");
+
+    li.innerHTML = `
+      ${d.nome} - R$ ${d.valor}
+      (${d.parcelas_pagas}/${d.parcelas})
+      <button onclick="pagarParcela('${d.id}', ${d.parcelas_pagas})">
+        Pagar
+      </button>
+    `;
+
+    lista.appendChild(li);
+  });
+}
+
+// HELPERS
+function emailInput() {
+  return document.getElementById("email").value;
+}
+
+function senhaInput() {
+  return document.getElementById("senha").value;
+}
 
 // LOGOUT
 async function logout() {
-  await supabaseClient.auth.signOut();
+  await supabase.auth.signOut();
   location.reload();
 }
 
