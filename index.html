@@ -11,27 +11,33 @@ body {
   margin: 0;
   font-family: Arial;
   color: white;
-  background: #111;
+
+  background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
+  url("./fundo.jpg");
+
+  background-size: cover;
+  background-position: center;
 }
 
 .container {
-  max-width: 500px;
+  max-width: 900px;
   margin: auto;
   padding: 20px;
 }
 
 .card {
-  background: #1e293b;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(12px);
   padding: 20px;
   border-radius: 16px;
   margin-top: 15px;
 }
 
-input, button {
+input, select, button {
   width: 100%;
   padding: 12px;
   margin-top: 10px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: none;
 }
 
@@ -40,6 +46,46 @@ button {
   color: white;
   font-weight: bold;
 }
+
+.saida {
+  background: #ef4444;
+}
+
+.saldo {
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.resumo {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.barra {
+  height: 6px;
+  background: #000;
+  border-radius: 10px;
+  margin-top: 5px;
+}
+
+.progresso {
+  height: 6px;
+  background: #22c55e;
+  border-radius: 10px;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  background: rgba(0,0,0,0.6);
+  padding: 10px;
+  margin-top: 5px;
+  border-radius: 10px;
+}
 </style>
 </head>
 
@@ -47,19 +93,54 @@ button {
 
 <div class="container">
 
-<h2>Finanças MPS</h2>
+<h1>🏗️ Finanças MPS</h1>
 
+<!-- LOGIN -->
 <div id="login" class="card">
   <input id="email" placeholder="Email">
   <input id="senha" type="password" placeholder="Senha">
 
-  <button onclick="signup()">Criar conta</button>
   <button onclick="login()">Entrar</button>
+  <button onclick="signup()">Criar conta</button>
 </div>
 
-<div id="app" class="card" style="display:none;">
-  <h3>✅ LOGADO COM SUCESSO</h3>
-  <button onclick="logout()">Sair</button>
+<!-- APP -->
+<div id="app" style="display:none;">
+
+<div class="card">
+  <div class="saldo">R$ <span id="saldo">0</span></div>
+
+  <div class="resumo">
+    <span>Entrada: R$ <span id="entrada">0</span></span>
+    <span>Saída: R$ <span id="saida">0</span></span>
+  </div>
+
+  <input id="valor" placeholder="Valor">
+  <input id="descricao" placeholder="Descrição (ex: lanche)">
+
+  <button onclick="addEntrada()">Entrada</button>
+  <button class="saida" onclick="addSaida()">Saída</button>
+</div>
+
+<div class="card">
+  <h3>📊 Histórico</h3>
+  <ul id="historico"></ul>
+</div>
+
+<div class="card">
+  <h3>🧾 Dívidas</h3>
+
+  <input id="nome" placeholder="Nome">
+  <input id="valorDivida" placeholder="Valor total">
+  <input id="parcelas" placeholder="Parcelas">
+
+  <button onclick="addDivida()">Adicionar</button>
+
+  <ul id="lista"></ul>
+</div>
+
+<button onclick="logout()">Sair</button>
+
 </div>
 
 </div>
@@ -71,62 +152,197 @@ const supabase = window.supabase.createClient(
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
 );
 
-// MOSTRAR APP
-function mostrarApp() {
+let user = null;
+
+// ENTRAR
+function entrar() {
   document.getElementById("login").style.display = "none";
   document.getElementById("app").style.display = "block";
+  carregarTudo();
 }
 
-// CADASTRO
-async function signup() {
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
-
-  const { error } = await supabase.auth.signUp({
-    email,
-    password: senha
-  });
-
-  if (error) return alert(error.message);
-
-  alert("Conta criada!");
-}
-
-// LOGIN (CORRIGIDO)
+// LOGIN
 async function login() {
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
+  const email = emailInput();
+  const senha = senhaInput();
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password: senha
   });
 
-  console.log(data, error);
+  if (error) return alert(error.message);
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  if (!data.session) {
-    alert("Login falhou");
-    return;
-  }
-
-  mostrarApp();
+  user = data.user;
+  entrar();
 }
 
-// AUTO LOGIN (CHAVE DO PROBLEMA)
-async function verificar() {
+// CADASTRO
+async function signup() {
+  const email = emailInput();
+  const senha = senhaInput();
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password: senha
+  });
+
+  if (error) return alert(error.message);
+
+  if (data.session) {
+    user = data.user;
+    entrar();
+  } else {
+    alert("Conta criada! Agora faça login.");
+  }
+}
+
+// AUTO LOGIN
+async function verificarSessao() {
   const { data } = await supabase.auth.getSession();
 
   if (data.session) {
-    mostrarApp();
+    user = data.session.user;
+    entrar();
   }
 }
+verificarSessao();
 
-verificar();
+// CATEGORIA AUTOMÁTICA
+function categoria(desc) {
+  desc = desc.toLowerCase();
+
+  if (desc.includes("lanche") || desc.includes("comida")) return "🍔 Alimentação";
+  if (desc.includes("uber") || desc.includes("gasolina")) return "🚗 Transporte";
+  if (desc.includes("salario")) return "💰 Receita";
+
+  return "📦 Outros";
+}
+
+// ADICIONAR
+async function addEntrada() {
+  await supabase.from("transacoes").insert([{
+    user_id: user.id,
+    valor: Number(valor.value),
+    tipo: "entrada",
+    categoria: categoria(descricao.value),
+    descricao: descricao.value
+  }]);
+
+  carregarTudo();
+}
+
+async function addSaida() {
+  await supabase.from("transacoes").insert([{
+    user_id: user.id,
+    valor: Number(valor.value),
+    tipo: "saida",
+    categoria: categoria(descricao.value),
+    descricao: descricao.value
+  }]);
+
+  carregarTudo();
+}
+
+// CARREGAR
+async function carregarTudo() {
+  carregarTransacoes();
+  carregarDividas();
+}
+
+async function carregarTransacoes() {
+  const { data } = await supabase
+    .from("transacoes")
+    .select("*")
+    .eq("user_id", user.id);
+
+  let total = 0, ent = 0, sai = 0;
+
+  historico.innerHTML = "";
+
+  data.forEach(t => {
+    if (t.tipo === "entrada") {
+      total += t.valor;
+      ent += t.valor;
+    } else {
+      total -= t.valor;
+      sai += t.valor;
+    }
+
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <b>${t.tipo === "entrada" ? "+" : "-"} R$ ${t.valor}</b><br>
+      ${t.descricao}<br>
+      ${t.categoria}
+    `;
+    historico.appendChild(li);
+  });
+
+  saldo.innerText = total;
+  entrada.innerText = ent;
+  saida.innerText = sai;
+}
+
+// DIVIDAS
+async function addDivida() {
+  await supabase.from("dividas").insert([{
+    user_id: user.id,
+    nome: nome.value,
+    valor: valorDivida.value,
+    parcelas: parcelas.value,
+    parcelas_pagas: 0
+  }]);
+
+  carregarDividas();
+}
+
+async function pagarParcela(id, pagas) {
+  await supabase
+    .from("dividas")
+    .update({ parcelas_pagas: pagas + 1 })
+    .eq("id", id);
+
+  carregarDividas();
+}
+
+async function carregarDividas() {
+  const { data } = await supabase
+    .from("dividas")
+    .select("*")
+    .eq("user_id", user.id);
+
+  lista.innerHTML = "";
+
+  data.forEach(d => {
+    const progresso = (d.parcelas_pagas / d.parcelas) * 100;
+
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <b>${d.nome}</b><br>
+      R$ ${d.valor}<br>
+      ${d.parcelas_pagas}/${d.parcelas}
+
+      <div class="barra">
+        <div class="progresso" style="width:${progresso}%"></div>
+      </div>
+
+      <button onclick="pagarParcela('${d.id}', ${d.parcelas_pagas})">
+        Pagar parcela
+      </button>
+    `;
+
+    lista.appendChild(li);
+  });
+}
+
+// HELPERS
+function emailInput() {
+  return document.getElementById("email").value;
+}
+
+function senhaInput() {
+  return document.getElementById("senha").value;
+}
 
 // LOGOUT
 async function logout() {
