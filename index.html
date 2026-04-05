@@ -121,46 +121,55 @@ const supabase = createClient(
 
 let user = null;
 
-// LOGIN AUTOMÁTICO
-supabase.auth.onAuthStateChange((event, session) => {
-  if (session) {
-    user = session.user;
-    document.getElementById("login").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    carregarTudo();
-  } else {
-    document.getElementById("login").style.display = "block";
-    document.getElementById("app").style.display = "none";
-  }
-});
-
-// LOGIN
+// 🔥 LOGIN (FORÇANDO ENTRADA)
 window.login = async function() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password: senha
   });
 
-  if (error) alert(error.message);
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  user = data.user;
+
+  document.getElementById("login").style.display = "none";
+  document.getElementById("app").style.display = "block";
+
+  carregarTudo();
 }
 
-// CADASTRO
+// 🔥 CADASTRO (FORÇA ENTRAR)
 window.signup = async function() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password: senha
   });
 
-  if (error) alert(error.message);
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  alert("Conta criada!");
+
+  user = data.user;
+
+  document.getElementById("login").style.display = "none";
+  document.getElementById("app").style.display = "block";
+
+  carregarTudo();
 }
 
-// CATEGORIA AUTOMÁTICA
+// CATEGORIA
 function categoria(desc) {
   desc = desc.toLowerCase();
 
@@ -196,7 +205,6 @@ async function addSaida() {
   carregarTudo();
 }
 
-// CARREGAR
 async function carregarTudo() {
   carregarTransacoes();
   carregarDividas();
@@ -276,6 +284,7 @@ async function carregarDividas() {
 // LOGOUT
 window.logout = async function() {
   await supabase.auth.signOut();
+  location.reload();
 }
 
 </script>
