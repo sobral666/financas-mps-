@@ -8,19 +8,24 @@
   <style>
     body {
       margin: 0;
-      background: linear-gradient(135deg, #020617, #0f172a, #022c22);
-      color: white;
       font-family: Arial;
+      color: white;
+
+      background: url("https://images.unsplash.com/photo-1621416894569-0f39ed31d247") no-repeat center center fixed;
+      background-size: cover;
     }
 
-    .container { padding: 20px; }
+    .container {
+      padding: 20px;
+    }
 
     .card {
-      background: #0f172a;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(15px);
       padding: 20px;
       border-radius: 16px;
       margin-top: 15px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      box-shadow: 0 0 20px rgba(0,0,0,0.7);
     }
 
     input {
@@ -29,7 +34,7 @@
       margin-top: 10px;
       border-radius: 10px;
       border: none;
-      background: #020617;
+      background: rgba(0,0,0,0.6);
       color: white;
     }
 
@@ -44,7 +49,9 @@
       font-weight: bold;
     }
 
-    .saida { background: #ef4444; }
+    .saida {
+      background: #ef4444;
+    }
 
     .saldo {
       font-size: 34px;
@@ -60,7 +67,7 @@
 
     .barra {
       height: 8px;
-      background: #020617;
+      background: #000;
       border-radius: 10px;
       margin-top: 5px;
     }
@@ -72,7 +79,7 @@
     }
 
     li {
-      background: #020617;
+      background: rgba(0,0,0,0.6);
       padding: 10px;
       border-radius: 10px;
       margin-top: 5px;
@@ -82,25 +89,20 @@
 
 <body>
 
-<!-- LOGIN PREMIUM -->
+<!-- LOGIN -->
 <div id="login" style="display:flex; height:100vh; align-items:center; justify-content:center;">
 
   <div style="
     width: 90%;
     max-width: 400px;
-    background: rgba(15,23,42,0.9);
     padding: 30px;
     border-radius: 20px;
-    box-shadow: 0 0 40px rgba(0,0,0,0.6);
-    backdrop-filter: blur(10px);
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(15px);
     text-align: center;
   ">
 
-    <div style="font-size:28px;font-weight:bold;color:#22c55e;">
-      💰 Finanças MPS
-    </div>
-
-    <p style="opacity:0.7;">Controle financeiro inteligente</p>
+    <h2>💰 Finanças MPS</h2>
 
     <input id="email" placeholder="Email">
     <input id="senha" type="password" placeholder="Senha">
@@ -127,7 +129,7 @@
     </div>
 
     <input id="valor" placeholder="Valor">
-    <input id="descricao" placeholder="Descrição (ex: lanche)">
+    <input id="descricao" placeholder="Descrição">
 
     <button onclick="addEntrada()">Entrada</button>
     <button class="saida" onclick="addSaida()">Saída</button>
