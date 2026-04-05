@@ -8,10 +8,8 @@
 body {
   margin: 0;
   font-family: Arial;
+  background: #0f172a;
   color: white;
-  background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
-  url("./fundo.jpg");
-  background-size: cover;
 }
 
 .container {
@@ -21,8 +19,7 @@ body {
 }
 
 .card {
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(12px);
+  background: #1e293b;
   padding: 20px;
   border-radius: 16px;
   margin-top: 15px;
@@ -39,22 +36,36 @@ input, button {
 button {
   background: #22c55e;
   color: white;
+}
+
+.saida { background: #ef4444; }
+
+.topo {
+  font-size: 28px;
   font-weight: bold;
 }
 
-.saida {
-  background: #ef4444;
+.linha {
+  display: flex;
+  justify-content: space-between;
 }
 
-ul {
-  list-style: none;
-  padding: 0;
-}
-
-li {
-  background: rgba(0,0,0,0.6);
+.item {
+  background: #020617;
   padding: 10px;
+  border-radius: 10px;
   margin-top: 5px;
+}
+
+.progresso {
+  height: 6px;
+  background: #22c55e;
+  border-radius: 10px;
+}
+
+.barra {
+  background: #000;
+  height: 6px;
   border-radius: 10px;
 }
 </style>
@@ -64,9 +75,8 @@ li {
 
 <div class="container">
 
-<h1>🏗️ Finanças MPS</h1>
+<h1>💰 Finanças MPS</h1>
 
-<!-- LOGIN -->
 <div id="login" class="card">
   <input id="email" placeholder="Email">
   <input id="senha" type="password" placeholder="Senha">
@@ -74,14 +84,17 @@ li {
   <button onclick="signup()">Criar conta</button>
 </div>
 
-<!-- APP -->
 <div id="app" style="display:none;">
 
 <div class="card">
-  <h2>💰 Saldo: R$ <span id="saldo">0</span></h2>
+  <div class="topo">R$ <span id="saldo">0</span></div>
+  <div class="linha">
+    <span>Entrada: <b id="entrada">0</b></span>
+    <span>Saída: <b id="saida">0</b></span>
+  </div>
 
   <input id="valor" placeholder="Valor">
-  <input id="descricao" placeholder="Descrição (ex: lanche)">
+  <input id="descricao" placeholder="Descrição">
 
   <button onclick="addEntrada()">Entrada</button>
   <button class="saida" onclick="addSaida()">Saída</button>
@@ -89,7 +102,7 @@ li {
 
 <div class="card">
   <h3>📊 Histórico</h3>
-  <ul id="historico"></ul>
+  <div id="historico"></div>
 </div>
 
 <div class="card">
@@ -101,7 +114,7 @@ li {
 
   <button onclick="addDivida()">Adicionar</button>
 
-  <ul id="lista"></ul>
+  <div id="lista"></div>
 </div>
 
 <button onclick="logout()">Sair</button>
@@ -119,65 +132,47 @@ const supabase = createClient(
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
 );
 
-let user = null;
+let user;
 
-// 🔥 LOGIN (FORÇANDO ENTRADA)
-window.login = async function() {
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
+// LOGIN AUTOMÁTICO
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    user = session.user;
+    loginDiv.style.display = "none";
+    app.style.display = "block";
+    carregarTudo();
+  }
+});
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password: senha
+const loginDiv = document.getElementById("login");
+const app = document.getElementById("app");
+
+// LOGIN
+window.login = async () => {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email.value,
+    password: senha.value
   });
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+  if (error) alert(error.message);
+};
 
-  user = data.user;
-
-  document.getElementById("login").style.display = "none";
-  document.getElementById("app").style.display = "block";
-
-  carregarTudo();
-}
-
-// 🔥 CADASTRO (FORÇA ENTRAR)
-window.signup = async function() {
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
-
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password: senha
+// CADASTRO
+window.signup = async () => {
+  const { error } = await supabase.auth.signUp({
+    email: email.value,
+    password: senha.value
   });
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  alert("Conta criada!");
-
-  user = data.user;
-
-  document.getElementById("login").style.display = "none";
-  document.getElementById("app").style.display = "block";
-
-  carregarTudo();
-}
+  if (error) alert(error.message);
+};
 
 // CATEGORIA
-function categoria(desc) {
-  desc = desc.toLowerCase();
-
-  if (desc.includes("lanche") || desc.includes("comida")) return "🍔 Alimentação";
-  if (desc.includes("uber") || desc.includes("gasolina")) return "🚗 Transporte";
-  if (desc.includes("salario")) return "💰 Receita";
-
-  return "📦 Outros";
+function cat(d) {
+  d = d.toLowerCase();
+  if (d.includes("lanche")) return "🍔";
+  if (d.includes("uber")) return "🚗";
+  return "💰";
 }
 
 // TRANSAÇÕES
@@ -186,10 +181,9 @@ async function addEntrada() {
     user_id: user.id,
     valor: Number(valor.value),
     tipo: "entrada",
-    categoria: categoria(descricao.value),
+    categoria: cat(descricao.value),
     descricao: descricao.value
   }]);
-
   carregarTudo();
 }
 
@@ -198,42 +192,50 @@ async function addSaida() {
     user_id: user.id,
     valor: Number(valor.value),
     tipo: "saida",
-    categoria: categoria(descricao.value),
+    categoria: cat(descricao.value),
     descricao: descricao.value
   }]);
-
   carregarTudo();
 }
 
+// CARREGAR
 async function carregarTudo() {
   carregarTransacoes();
   carregarDividas();
 }
 
 async function carregarTransacoes() {
-  const { data } = await supabase
-    .from("transacoes")
-    .select("*")
-    .eq("user_id", user.id);
+  const { data } = await supabase.from("transacoes")
+  .select("*").eq("user_id", user.id);
 
-  let saldo = 0;
+  let saldo = 0, ent = 0, sai = 0;
   historico.innerHTML = "";
 
   data.forEach(t => {
-    if (t.tipo === "entrada") saldo += t.valor;
-    else saldo -= t.valor;
+    if (t.tipo === "entrada") {
+      saldo += t.valor; ent += t.valor;
+    } else {
+      saldo -= t.valor; sai += t.valor;
+    }
 
-    const li = document.createElement("li");
-    li.innerHTML = `
-      <b>${t.tipo === "entrada" ? "+" : "-"} R$ ${t.valor}</b><br>
-      ${t.descricao}<br>
-      ${t.categoria}
+    historico.innerHTML += `
+      <div class="item">
+        ${t.categoria} ${t.descricao}<br>
+        R$ ${t.valor}
+        <button onclick="delTrans('${t.id}')">❌</button>
+      </div>
     `;
-    historico.appendChild(li);
   });
 
   document.getElementById("saldo").innerText = saldo;
+  document.getElementById("entrada").innerText = ent;
+  document.getElementById("saida").innerText = sai;
 }
+
+window.delTrans = async (id) => {
+  await supabase.from("transacoes").delete().eq("id", id);
+  carregarTudo();
+};
 
 // DIVIDAS
 async function addDivida() {
@@ -244,48 +246,41 @@ async function addDivida() {
     parcelas: parcelas.value,
     parcelas_pagas: 0
   }]);
-
   carregarDividas();
 }
 
-async function pagarParcela(id, pagas) {
-  await supabase
-    .from("dividas")
-    .update({ parcelas_pagas: pagas + 1 })
-    .eq("id", id);
-
+async function pagar(id, p) {
+  await supabase.from("dividas")
+  .update({ parcelas_pagas: p + 1 }).eq("id", id);
   carregarDividas();
 }
 
 async function carregarDividas() {
-  const { data } = await supabase
-    .from("dividas")
-    .select("*")
-    .eq("user_id", user.id);
+  const { data } = await supabase.from("dividas")
+  .select("*").eq("user_id", user.id);
 
   lista.innerHTML = "";
 
   data.forEach(d => {
-    const li = document.createElement("li");
+    let prog = (d.parcelas_pagas/d.parcelas)*100;
 
-    li.innerHTML = `
-      <b>${d.nome}</b><br>
-      R$ ${d.valor}<br>
-      ${d.parcelas_pagas}/${d.parcelas}
-      <button onclick="pagarParcela('${d.id}', ${d.parcelas_pagas})">
-        Pagar
-      </button>
+    lista.innerHTML += `
+      <div class="item">
+        ${d.nome}<br>
+        ${d.parcelas_pagas}/${d.parcelas}
+        <div class="barra">
+          <div class="progresso" style="width:${prog}%"></div>
+        </div>
+        <button onclick="pagar('${d.id}', ${d.parcelas_pagas})">Pagar</button>
+      </div>
     `;
-
-    lista.appendChild(li);
   });
 }
 
-// LOGOUT
-window.logout = async function() {
+window.logout = async () => {
   await supabase.auth.signOut();
   location.reload();
-}
+};
 
 </script>
 
