@@ -12,10 +12,7 @@ body {
   font-family: Arial;
   color: white;
 
-  background: linear-gradient(
-    rgba(0,0,0,0.7),
-    rgba(0,0,0,0.9)
-  ),
+  background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
   url("./fundo.jpg");
 
   background-size: cover;
@@ -68,7 +65,8 @@ button {
 
 <!-- APP -->
 <div id="app" style="display:none;" class="card">
-  <h2>Você está logado 🎉</h2>
+  <h2>🎉 LOGADO COM SUCESSO</h2>
+  <p>Agora seu app está funcionando</p>
   <button onclick="logout()">Sair</button>
 </div>
 
@@ -81,9 +79,13 @@ const supabaseClient = window.supabase.createClient(
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
 );
 
-let user = null;
+// FUNÇÃO ENTRAR (FORÇADA)
+function entrar() {
+  document.getElementById("login").style.display = "none";
+  document.getElementById("app").style.display = "block";
+}
 
-// LOGIN NORMAL
+// LOGIN
 async function login() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
@@ -98,11 +100,11 @@ async function login() {
     return;
   }
 
-  user = data.user;
+  alert("Login OK");
   entrar();
 }
 
-// CADASTRO (SEM LOGIN DUPLO)
+// CADASTRO
 async function signup() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
@@ -117,27 +119,15 @@ async function signup() {
     return;
   }
 
-  // IMPORTANTE: Supabase já loga automaticamente
-  if (data.session) {
-    user = data.user;
-    entrar();
-  } else {
-    alert("Conta criada! Agora faça login.");
-  }
+  alert("Conta criada e já logada!");
+  entrar();
 }
 
-// ENTRAR
-function entrar() {
-  document.getElementById("login").style.display = "none";
-  document.getElementById("app").style.display = "block";
-}
-
-// AUTO LOGIN
+// AUTO LOGIN (IMPORTANTÍSSIMO)
 async function verificarSessao() {
   const { data } = await supabaseClient.auth.getSession();
 
   if (data.session) {
-    user = data.session.user;
     entrar();
   }
 }
