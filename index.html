@@ -104,60 +104,81 @@ const supabase = createClient(
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
 );
 
-let user;
+let user = null;
 
-// 🔥 LOGIN AUTOMÁTICO (BASE DO APP)
+// 🔥 LOGIN AUTOMÁTICO
 supabase.auth.onAuthStateChange((event, session) => {
   if (session) {
     user = session.user;
-    login.style.display = "none";
-    app.style.display = "block";
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
     carregar();
   }
 });
 
-// LOGIN
-window.login = async () => {
+// 🔥 LOGIN
+window.login = async function() {
+  const emailVal = document.getElementById("email").value;
+  const senhaVal = document.getElementById("senha").value;
+
   const { error } = await supabase.auth.signInWithPassword({
-    email: email.value,
-    password: senha.value
+    email: emailVal,
+    password: senhaVal
   });
 
   if (error) alert(error.message);
 };
 
-// CADASTRO
-window.signup = async () => {
+// 🔥 CADASTRO + LOGIN AUTOMÁTICO
+window.signup = async function() {
+  const emailVal = document.getElementById("email").value;
+  const senhaVal = document.getElementById("senha").value;
+
   const { error } = await supabase.auth.signUp({
-    email: email.value,
-    password: senha.value
+    email: emailVal,
+    password: senhaVal
   });
 
-  if (error) alert(error.message);
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  // login automático
+  const { error: loginError } = await supabase.auth.signInWithPassword({
+    email: emailVal,
+    password: senhaVal
+  });
+
+  if (loginError) {
+    alert("Conta criada! Agora clique em entrar.");
+  }
 };
 
 // TRANSAÇÕES
-window.entrada = async () => {
+window.entrada = async function() {
   await supabase.from("transacoes").insert([{
     user_id: user.id,
-    valor: Number(valor.value),
+    valor: Number(document.getElementById("valor").value),
     tipo: "entrada",
-    descricao: descricao.value
+    descricao: document.getElementById("descricao").value
   }]);
+
   carregar();
 };
 
-window.saida = async () => {
+window.saida = async function() {
   await supabase.from("transacoes").insert([{
     user_id: user.id,
-    valor: Number(valor.value),
+    valor: Number(document.getElementById("valor").value),
     tipo: "saida",
-    descricao: descricao.value
+    descricao: document.getElementById("descricao").value
   }]);
+
   carregar();
 };
 
-// CARREGAR DADOS
+// CARREGAR
 async function carregar() {
   carregarTransacoes();
   carregarDividas();
@@ -165,16 +186,18 @@ async function carregar() {
 
 async function carregarTransacoes() {
   const { data } = await supabase.from("transacoes")
-  .select("*").eq("user_id", user.id);
+    .select("*")
+    .eq("user_id", user.id);
 
   let saldo = 0;
-  historico.innerHTML = "";
+  const hist = document.getElementById("historico");
+  hist.innerHTML = "";
 
   data.forEach(t => {
     if (t.tipo === "entrada") saldo += t.valor;
     else saldo -= t.valor;
 
-    historico.innerHTML += `
+    hist.innerHTML += `
       <div class="item">
         ${t.tipo === "entrada" ? "+" : "-"} R$ ${t.valor}<br>
         ${t.descricao}
@@ -187,33 +210,36 @@ async function carregarTransacoes() {
 }
 
 // DELETE
-window.del = async (id) => {
+window.del = async function(id) {
   await supabase.from("transacoes").delete().eq("id", id);
   carregar();
 };
 
 // DIVIDAS
-window.addDivida = async () => {
+window.addDivida = async function() {
   await supabase.from("dividas").insert([{
     user_id: user.id,
-    nome: nome.value,
-    valor: valorDivida.value,
-    parcelas: parcelas.value,
+    nome: document.getElementById("nome").value,
+    valor: document.getElementById("valorDivida").value,
+    parcelas: document.getElementById("parcelas").value,
     parcelas_pagas: 0
   }]);
+
   carregarDividas();
 };
 
 async function carregarDividas() {
   const { data } = await supabase.from("dividas")
-  .select("*").eq("user_id", user.id);
+    .select("*")
+    .eq("user_id", user.id);
 
-  dividas.innerHTML = "";
+  const div = document.getElementById("dividas");
+  div.innerHTML = "";
 
   data.forEach(d => {
-    let prog = (d.parcelas_pagas/d.parcelas)*100;
+    let prog = (d.parcelas_pagas / d.parcelas) * 100;
 
-    dividas.innerHTML += `
+    div.innerHTML += `
       <div class="item">
         ${d.nome}<br>
         ${d.parcelas_pagas}/${d.parcelas}
@@ -226,14 +252,16 @@ async function carregarDividas() {
   });
 }
 
-window.pagar = async (id, p) => {
+window.pagar = async function(id, p) {
   await supabase.from("dividas")
-  .update({ parcelas_pagas: p + 1 }).eq("id", id);
+    .update({ parcelas_pagas: p + 1 })
+    .eq("id", id);
+
   carregarDividas();
 };
 
 // LOGOUT
-window.logout = async () => {
+window.logout = async function() {
   await supabase.auth.signOut();
   location.reload();
 };
