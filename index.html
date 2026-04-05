@@ -6,20 +6,22 @@
 
 <style>
 body {
-  background:#0f172a;
-  color:white;
-  font-family:Arial;
   margin:0;
-  padding:20px;
+  font-family: Arial;
+  color:white;
+  background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
+  url("https://images.unsplash.com/photo-1581092334651-ddf26d9a09d0");
+  background-size: cover;
 }
 
 .container {
-  max-width:900px;
+  max-width: 900px;
   margin:auto;
+  padding:20px;
 }
 
 .card {
-  background:#1e293b;
+  background: rgba(0,0,0,0.6);
   padding:20px;
   border-radius:12px;
   margin-top:15px;
@@ -43,6 +45,7 @@ button { background:#22c55e; color:white; }
   border-radius:8px;
 }
 </style>
+
 </head>
 
 <body>
@@ -51,7 +54,6 @@ button { background:#22c55e; color:white; }
 
 <h1>💰 Finanças MPS</h1>
 
-<!-- LOGIN -->
 <div id="login" class="card">
   <input id="email" placeholder="Email">
   <input id="senha" type="password" placeholder="Senha">
@@ -59,7 +61,6 @@ button { background:#22c55e; color:white; }
   <button onclick="signup()">Criar conta</button>
 </div>
 
-<!-- APP -->
 <div id="app" style="display:none;">
 
 <div class="card">
@@ -68,8 +69,8 @@ button { background:#22c55e; color:white; }
   <input id="valor" placeholder="Valor">
   <input id="descricao" placeholder="Descrição">
 
-  <button onclick="entrada()">Entrada</button>
-  <button class="saida" onclick="saida()">Saída</button>
+  <button onclick="addEntrada()">Entrada</button>
+  <button class="saida" onclick="addSaida()">Saída</button>
 </div>
 
 <div class="card">
@@ -106,8 +107,10 @@ const supabase = createClient(
 
 let user = null;
 
-// 🔥 LOGIN AUTOMÁTICO
+// 🔥 AUTO LOGIN
 supabase.auth.onAuthStateChange((event, session) => {
+  console.log("EVENT:", event);
+
   if (session) {
     user = session.user;
     document.getElementById("login").style.display = "none";
@@ -116,27 +119,24 @@ supabase.auth.onAuthStateChange((event, session) => {
   }
 });
 
-// 🔥 LOGIN
+// LOGIN
 window.login = async function() {
-  const emailVal = document.getElementById("email").value;
-  const senhaVal = document.getElementById("senha").value;
-
   const { error } = await supabase.auth.signInWithPassword({
-    email: emailVal,
-    password: senhaVal
+    email: document.getElementById("email").value,
+    password: document.getElementById("senha").value
   });
 
   if (error) alert(error.message);
 };
 
-// 🔥 CADASTRO + LOGIN AUTOMÁTICO
+// CADASTRO + LOGIN
 window.signup = async function() {
-  const emailVal = document.getElementById("email").value;
-  const senhaVal = document.getElementById("senha").value;
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
 
   const { error } = await supabase.auth.signUp({
-    email: emailVal,
-    password: senhaVal
+    email,
+    password: senha
   });
 
   if (error) {
@@ -145,18 +145,16 @@ window.signup = async function() {
   }
 
   // login automático
-  const { error: loginError } = await supabase.auth.signInWithPassword({
-    email: emailVal,
-    password: senhaVal
+  await supabase.auth.signInWithPassword({
+    email,
+    password: senha
   });
-
-  if (loginError) {
-    alert("Conta criada! Agora clique em entrar.");
-  }
 };
 
 // TRANSAÇÕES
-window.entrada = async function() {
+window.addEntrada = async function() {
+  if (!user) return alert("Não logado");
+
   await supabase.from("transacoes").insert([{
     user_id: user.id,
     valor: Number(document.getElementById("valor").value),
@@ -167,7 +165,9 @@ window.entrada = async function() {
   carregar();
 };
 
-window.saida = async function() {
+window.addSaida = async function() {
+  if (!user) return alert("Não logado");
+
   await supabase.from("transacoes").insert([{
     user_id: user.id,
     valor: Number(document.getElementById("valor").value),
@@ -180,12 +180,8 @@ window.saida = async function() {
 
 // CARREGAR
 async function carregar() {
-  carregarTransacoes();
-  carregarDividas();
-}
-
-async function carregarTransacoes() {
-  const { data } = await supabase.from("transacoes")
+  const { data } = await supabase
+    .from("transacoes")
     .select("*")
     .eq("user_id", user.id);
 
@@ -207,6 +203,8 @@ async function carregarTransacoes() {
   });
 
   document.getElementById("saldo").innerText = saldo;
+
+  carregarDividas();
 }
 
 // DELETE
@@ -219,9 +217,9 @@ window.del = async function(id) {
 window.addDivida = async function() {
   await supabase.from("dividas").insert([{
     user_id: user.id,
-    nome: document.getElementById("nome").value,
-    valor: document.getElementById("valorDivida").value,
-    parcelas: document.getElementById("parcelas").value,
+    nome: nome.value,
+    valor: valorDivida.value,
+    parcelas: parcelas.value,
     parcelas_pagas: 0
   }]);
 
@@ -229,7 +227,8 @@ window.addDivida = async function() {
 };
 
 async function carregarDividas() {
-  const { data } = await supabase.from("dividas")
+  const { data } = await supabase
+    .from("dividas")
     .select("*")
     .eq("user_id", user.id);
 
@@ -237,7 +236,7 @@ async function carregarDividas() {
   div.innerHTML = "";
 
   data.forEach(d => {
-    let prog = (d.parcelas_pagas / d.parcelas) * 100;
+    const prog = (d.parcelas_pagas / d.parcelas) * 100;
 
     div.innerHTML += `
       <div class="item">
