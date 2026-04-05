@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <title>Finanças MPS</title>
 
-<!-- SUPABASE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- SUPABASE ESTÁVEL -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
 body {
@@ -90,11 +90,11 @@ button { background:#22c55e; color:white; }
 let supabase;
 let user = null;
 
-// 🔥 GARANTE QUE CARREGOU
-window.onload = function() {
+// 🔥 GARANTE CARREGAMENTO
+window.addEventListener("load", () => {
 
   if (!window.supabase) {
-    alert("Erro: Supabase não carregou");
+    alert("❌ Supabase não carregou (problema de internet/CDN)");
     return;
   }
 
@@ -104,7 +104,7 @@ window.onload = function() {
   );
 
   iniciar();
-};
+});
 
 // INICIAR
 function iniciar() {
