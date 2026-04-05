@@ -11,28 +11,23 @@ body {
   margin: 0;
   font-family: Arial;
   color: white;
-
-  background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
-  url("./fundo.jpg");
-
-  background-size: cover;
-  background-position: center;
+  background: #111;
 }
 
 .container {
-  max-width: 900px;
+  max-width: 500px;
   margin: auto;
   padding: 20px;
 }
 
 .card {
-  background: rgba(0,0,0,0.6);
+  background: #1e293b;
   padding: 20px;
   border-radius: 16px;
   margin-top: 15px;
 }
 
-input, select, button {
+input, button {
   width: 100%;
   padding: 12px;
   margin-top: 10px;
@@ -45,22 +40,6 @@ button {
   color: white;
   font-weight: bold;
 }
-
-.danger {
-  background: #ef4444;
-}
-
-ul {
-  padding: 0;
-  list-style: none;
-}
-
-li {
-  background: rgba(0,0,0,0.6);
-  padding: 10px;
-  margin-top: 5px;
-  border-radius: 10px;
-}
 </style>
 </head>
 
@@ -68,58 +47,19 @@ li {
 
 <div class="container">
 
-<h1>🏗️ Finanças MPS</h1>
+<h2>Finanças MPS</h2>
 
-<!-- LOGIN -->
 <div id="login" class="card">
   <input id="email" placeholder="Email">
   <input id="senha" type="password" placeholder="Senha">
-  <button onclick="login()">Entrar</button>
+
   <button onclick="signup()">Criar conta</button>
+  <button onclick="login()">Entrar</button>
 </div>
 
-<!-- APP -->
-<div id="app" style="display:none;">
-
-<div class="card">
-  <h2>💰 Saldo: R$ <span id="saldo">0</span></h2>
-
-  <input id="valor" placeholder="Valor">
-  
-  <select id="tipo">
-    <option value="entrada">Entrada</option>
-    <option value="saida">Saída</option>
-  </select>
-
-  <select id="categoria">
-    <option>Salário</option>
-    <option>Comida</option>
-    <option>Transporte</option>
-    <option>Material</option>
-  </select>
-
-  <button onclick="addTransacao()">Adicionar</button>
-</div>
-
-<div class="card">
-  <h3>📊 Histórico</h3>
-  <ul id="transacoes"></ul>
-</div>
-
-<div class="card">
-  <h3>🧾 Dívidas</h3>
-
-  <input id="nome" placeholder="Nome">
-  <input id="valorDivida" placeholder="Valor total">
-  <input id="parcelas" placeholder="Parcelas">
-
-  <button onclick="addDivida()">Adicionar</button>
-
-  <ul id="lista"></ul>
-</div>
-
-<button class="danger" onclick="logout()">Sair</button>
-
+<div id="app" class="card" style="display:none;">
+  <h3>✅ LOGADO COM SUCESSO</h3>
+  <button onclick="logout()">Sair</button>
 </div>
 
 </div>
@@ -131,163 +71,62 @@ const supabase = window.supabase.createClient(
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
 );
 
-let user = null;
-
-// ENTRAR
-function entrar() {
+// MOSTRAR APP
+function mostrarApp() {
   document.getElementById("login").style.display = "none";
   document.getElementById("app").style.display = "block";
-  carregarTudo();
 }
 
-// LOGIN
+// CADASTRO
+async function signup() {
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
+
+  const { error } = await supabase.auth.signUp({
+    email,
+    password: senha
+  });
+
+  if (error) return alert(error.message);
+
+  alert("Conta criada!");
+}
+
+// LOGIN (CORRIGIDO)
 async function login() {
-  const email = emailInput();
-  const senha = senhaInput();
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password: senha
   });
 
-  if (error) return alert(error.message);
+  console.log(data, error);
 
-  user = data.user;
-  entrar();
-}
-
-// CADASTRO
-async function signup() {
-  const email = emailInput();
-  const senha = senhaInput();
-
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password: senha
-  });
-
-  if (error) return alert(error.message);
-
-  if (data.session) {
-    user = data.user;
-    entrar();
-  } else {
-    alert("Conta criada! Faça login.");
+  if (error) {
+    alert(error.message);
+    return;
   }
+
+  if (!data.session) {
+    alert("Login falhou");
+    return;
+  }
+
+  mostrarApp();
 }
 
-// AUTO LOGIN
-async function verificarSessao() {
+// AUTO LOGIN (CHAVE DO PROBLEMA)
+async function verificar() {
   const { data } = await supabase.auth.getSession();
 
   if (data.session) {
-    user = data.session.user;
-    entrar();
+    mostrarApp();
   }
 }
-verificarSessao();
 
-// TRANSAÇÕES
-async function addTransacao() {
-  const valor = Number(document.getElementById("valor").value);
-  const tipo = document.getElementById("tipo").value;
-  const categoria = document.getElementById("categoria").value;
-
-  await supabase.from("transacoes").insert([
-    { user_id: user.id, valor, tipo, categoria }
-  ]);
-
-  carregarTransacoes();
-}
-
-// CARREGAR
-async function carregarTudo() {
-  carregarTransacoes();
-  carregarDividas();
-}
-
-async function carregarTransacoes() {
-  const { data } = await supabase
-    .from("transacoes")
-    .select("*")
-    .eq("user_id", user.id);
-
-  let saldo = 0;
-  const lista = document.getElementById("transacoes");
-  lista.innerHTML = "";
-
-  data.forEach(t => {
-    if (t.tipo === "entrada") saldo += t.valor;
-    else saldo -= t.valor;
-
-    const li = document.createElement("li");
-    li.innerText = `${t.tipo} - ${t.categoria} - R$ ${t.valor}`;
-    lista.appendChild(li);
-  });
-
-  document.getElementById("saldo").innerText = saldo;
-}
-
-// DIVIDAS
-async function addDivida() {
-  const nome = document.getElementById("nome").value;
-  const valor = document.getElementById("valorDivida").value;
-  const parcelas = document.getElementById("parcelas").value;
-
-  await supabase.from("dividas").insert([
-    {
-      user_id: user.id,
-      nome,
-      valor,
-      parcelas,
-      parcelas_pagas: 0
-    }
-  ]);
-
-  carregarDividas();
-}
-
-async function pagarParcela(id, pagas) {
-  await supabase
-    .from("dividas")
-    .update({ parcelas_pagas: pagas + 1 })
-    .eq("id", id);
-
-  carregarDividas();
-}
-
-async function carregarDividas() {
-  const { data } = await supabase
-    .from("dividas")
-    .select("*")
-    .eq("user_id", user.id);
-
-  const lista = document.getElementById("lista");
-  lista.innerHTML = "";
-
-  data.forEach(d => {
-    const li = document.createElement("li");
-
-    li.innerHTML = `
-      ${d.nome} - R$ ${d.valor}
-      (${d.parcelas_pagas}/${d.parcelas})
-      <button onclick="pagarParcela('${d.id}', ${d.parcelas_pagas})">
-        Pagar
-      </button>
-    `;
-
-    lista.appendChild(li);
-  });
-}
-
-// HELPERS
-function emailInput() {
-  return document.getElementById("email").value;
-}
-
-function senhaInput() {
-  return document.getElementById("senha").value;
-}
+verificar();
 
 // LOGOUT
 async function logout() {
