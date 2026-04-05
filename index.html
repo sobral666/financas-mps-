@@ -8,7 +8,7 @@
   <style>
     body {
       margin: 0;
-      background: linear-gradient(180deg,#020617,#0f172a);
+      background: linear-gradient(135deg, #020617, #0f172a, #022c22);
       color: white;
       font-family: Arial;
     }
@@ -82,18 +82,41 @@
 
 <body>
 
-<div class="container">
+<!-- LOGIN PREMIUM -->
+<div id="login" style="display:flex; height:100vh; align-items:center; justify-content:center;">
 
-<h1>💰 Finanças MPS</h1>
+  <div style="
+    width: 90%;
+    max-width: 400px;
+    background: rgba(15,23,42,0.9);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.6);
+    backdrop-filter: blur(10px);
+    text-align: center;
+  ">
 
-<div id="login" class="card">
-  <input id="email" placeholder="Email">
-  <input id="senha" type="password" placeholder="Senha">
-  <button onclick="login()">Entrar</button>
-  <button onclick="signup()">Criar conta</button>
+    <div style="font-size:28px;font-weight:bold;color:#22c55e;">
+      💰 Finanças MPS
+    </div>
+
+    <p style="opacity:0.7;">Controle financeiro inteligente</p>
+
+    <input id="email" placeholder="Email">
+    <input id="senha" type="password" placeholder="Senha">
+
+    <button onclick="login()">Entrar</button>
+    <button onclick="signup()" style="background:#334155;">
+      Criar conta
+    </button>
+
+  </div>
 </div>
 
-<div id="app" style="display:none;">
+<!-- APP -->
+<div id="app" style="display:none;" class="container">
+
+  <h1>💰 Finanças MPS</h1>
 
   <div class="card">
     <div class="saldo">R$ <span id="saldo">0</span></div>
@@ -104,28 +127,30 @@
     </div>
 
     <input id="valor" placeholder="Valor">
-    <input id="descricao" placeholder="Descrição">
+    <input id="descricao" placeholder="Descrição (ex: lanche)">
+
     <button onclick="addEntrada()">Entrada</button>
     <button class="saida" onclick="addSaida()">Saída</button>
   </div>
 
   <div class="card">
-    <h3>📊 Gastos por categoria</h3>
+    <h3>📊 Gastos</h3>
     <canvas id="grafico"></canvas>
   </div>
 
   <div class="card">
     <h3>🧾 Dívidas</h3>
-    <input id="nome">
-    <input id="valorDivida">
-    <input id="parcelas">
+
+    <input id="nome" placeholder="Nome">
+    <input id="valorDivida" placeholder="Valor total">
+    <input id="parcelas" placeholder="Parcelas">
+
     <button onclick="addDivida()">Adicionar</button>
+
     <ul id="lista"></ul>
   </div>
 
   <button onclick="logout()">Sair</button>
-
-</div>
 
 </div>
 
@@ -181,7 +206,7 @@ function categoria(desc) {
   return "Outros";
 }
 
-// CARREGAR TUDO
+// CARREGAR
 async function carregarTudo() {
   const { data } = await supabaseClient
     .from("transacoes")
@@ -198,7 +223,6 @@ async function carregarTudo() {
     } else {
       total -= t.valor;
       sai += t.valor;
-
       categorias[t.categoria] = (categorias[t.categoria] || 0) + t.valor;
     }
   });
@@ -219,9 +243,7 @@ function desenharGrafico(dados) {
     type: 'doughnut',
     data: {
       labels: Object.keys(dados),
-      datasets: [{
-        data: Object.values(dados)
-      }]
+      datasets: [{ data: Object.values(dados) }]
     }
   });
 }
@@ -282,20 +304,21 @@ async function carregarDividas() {
   lista.innerHTML = "";
 
   data.forEach(d => {
-    const faltam = d.parcelas_total - d.parcelas_pagas;
     const progresso = (d.parcelas_pagas / d.parcelas_total) * 100;
 
     const li = document.createElement("li");
     li.innerHTML = `
       <b>${d.nome}</b><br>
       R$ ${d.valor_total}<br>
-      ${d.parcelas_pagas}/${d.parcelas_total}<br>
+      ${d.parcelas_pagas}/${d.parcelas_total}
 
       <div class="barra">
         <div class="progresso" style="width:${progresso}%"></div>
       </div>
 
-      <button onclick="pagarParcela('${d.id}', ${d.parcelas_pagas})">Pagar</button>
+      <button onclick="pagarParcela('${d.id}', ${d.parcelas_pagas})">
+        Pagar parcela
+      </button>
     `;
 
     lista.appendChild(li);
