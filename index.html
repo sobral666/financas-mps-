@@ -8,10 +8,8 @@
 body {
   margin:0;
   font-family: Arial;
+  background:#0f172a;
   color:white;
-  background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
-  url("https://images.unsplash.com/photo-1581092334651-ddf26d9a09d0");
-  background-size: cover;
 }
 
 .container {
@@ -21,7 +19,7 @@ body {
 }
 
 .card {
-  background: rgba(0,0,0,0.6);
+  background:#1e293b;
   padding:20px;
   border-radius:12px;
   margin-top:15px;
@@ -45,7 +43,6 @@ button { background:#22c55e; color:white; }
   border-radius:8px;
 }
 </style>
-
 </head>
 
 <body>
@@ -54,6 +51,7 @@ button { background:#22c55e; color:white; }
 
 <h1>💰 Finanças MPS</h1>
 
+<!-- LOGIN -->
 <div id="login" class="card">
   <input id="email" placeholder="Email">
   <input id="senha" type="password" placeholder="Senha">
@@ -61,6 +59,7 @@ button { background:#22c55e; color:white; }
   <button onclick="signup()">Criar conta</button>
 </div>
 
+<!-- APP -->
 <div id="app" style="display:none;">
 
 <div class="card">
@@ -69,8 +68,8 @@ button { background:#22c55e; color:white; }
   <input id="valor" placeholder="Valor">
   <input id="descricao" placeholder="Descrição">
 
-  <button onclick="addEntrada()">Entrada</button>
-  <button class="saida" onclick="addSaida()">Saída</button>
+  <button onclick="entrada()">Entrada</button>
+  <button class="saida" onclick="saida()">Saída</button>
 </div>
 
 <div class="card">
@@ -107,29 +106,33 @@ const supabase = createClient(
 
 let user = null;
 
-// 🔥 AUTO LOGIN
+// 🔥 LOGIN AUTOMÁTICO
 supabase.auth.onAuthStateChange((event, session) => {
-  console.log("EVENT:", event);
-
   if (session) {
     user = session.user;
     document.getElementById("login").style.display = "none";
     document.getElementById("app").style.display = "block";
     carregar();
+  } else {
+    document.getElementById("login").style.display = "block";
+    document.getElementById("app").style.display = "none";
   }
 });
 
 // LOGIN
 window.login = async function() {
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
+
   const { error } = await supabase.auth.signInWithPassword({
-    email: document.getElementById("email").value,
-    password: document.getElementById("senha").value
+    email,
+    password: senha
   });
 
   if (error) alert(error.message);
 };
 
-// CADASTRO + LOGIN
+// CADASTRO + LOGIN AUTOMÁTICO
 window.signup = async function() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
@@ -144,7 +147,6 @@ window.signup = async function() {
     return;
   }
 
-  // login automático
   await supabase.auth.signInWithPassword({
     email,
     password: senha
@@ -152,27 +154,27 @@ window.signup = async function() {
 };
 
 // TRANSAÇÕES
-window.addEntrada = async function() {
-  if (!user) return alert("Não logado");
+window.entrada = async function() {
+  if (!user) return alert("Faça login");
 
   await supabase.from("transacoes").insert([{
     user_id: user.id,
-    valor: Number(document.getElementById("valor").value),
+    valor: Number(valor.value),
     tipo: "entrada",
-    descricao: document.getElementById("descricao").value
+    descricao: descricao.value
   }]);
 
   carregar();
 };
 
-window.addSaida = async function() {
-  if (!user) return alert("Não logado");
+window.saida = async function() {
+  if (!user) return alert("Faça login");
 
   await supabase.from("transacoes").insert([{
     user_id: user.id,
-    valor: Number(document.getElementById("valor").value),
+    valor: Number(valor.value),
     tipo: "saida",
-    descricao: document.getElementById("descricao").value
+    descricao: descricao.value
   }]);
 
   carregar();
@@ -186,18 +188,16 @@ async function carregar() {
     .eq("user_id", user.id);
 
   let saldo = 0;
-  const hist = document.getElementById("historico");
-  hist.innerHTML = "";
+  historico.innerHTML = "";
 
   data.forEach(t => {
     if (t.tipo === "entrada") saldo += t.valor;
     else saldo -= t.valor;
 
-    hist.innerHTML += `
+    historico.innerHTML += `
       <div class="item">
         ${t.tipo === "entrada" ? "+" : "-"} R$ ${t.valor}<br>
         ${t.descricao}
-        <button onclick="del('${t.id}')">Excluir</button>
       </div>
     `;
   });
@@ -206,12 +206,6 @@ async function carregar() {
 
   carregarDividas();
 }
-
-// DELETE
-window.del = async function(id) {
-  await supabase.from("transacoes").delete().eq("id", id);
-  carregar();
-};
 
 // DIVIDAS
 window.addDivida = async function() {
@@ -232,37 +226,26 @@ async function carregarDividas() {
     .select("*")
     .eq("user_id", user.id);
 
-  const div = document.getElementById("dividas");
-  div.innerHTML = "";
+  dividas.innerHTML = "";
 
   data.forEach(d => {
-    const prog = (d.parcelas_pagas / d.parcelas) * 100;
+    let prog = (d.parcelas_pagas/d.parcelas)*100;
 
-    div.innerHTML += `
+    dividas.innerHTML += `
       <div class="item">
         ${d.nome}<br>
         ${d.parcelas_pagas}/${d.parcelas}
         <div style="background:#000;height:5px">
           <div style="width:${prog}%;background:#22c55e;height:5px"></div>
         </div>
-        <button onclick="pagar('${d.id}', ${d.parcelas_pagas})">Pagar</button>
       </div>
     `;
   });
 }
 
-window.pagar = async function(id, p) {
-  await supabase.from("dividas")
-    .update({ parcelas_pagas: p + 1 })
-    .eq("id", id);
-
-  carregarDividas();
-};
-
 // LOGOUT
 window.logout = async function() {
   await supabase.auth.signOut();
-  location.reload();
 };
 
 </script>
