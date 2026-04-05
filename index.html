@@ -143,7 +143,17 @@ function logout() {
   location.reload();
 }
 
-</script>
+</script>// AUTO LOGIN (SE JÁ ESTIVER LOGADO)
+async function verificarSessao() {
+  const { data } = await supabaseClient.auth.getSession();
+
+  if (data.session) {
+    user = data.session.user;
+    entrar();
+  }
+}
+
+verificarSessao();
 
 </body>
 </html>
