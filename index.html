@@ -4,136 +4,60 @@
 <meta charset="UTF-8">
 <title>Finanças MPS</title>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 body {
-  margin:0;
-  font-family: Arial;
-  background:#0f172a;
+  background:#111;
   color:white;
-}
-
-.container {
-  max-width: 900px;
-  margin:auto;
+  font-family:Arial;
   padding:20px;
-}
-
-.card {
-  background:#1e293b;
-  padding:20px;
-  border-radius:12px;
-  margin-top:15px;
 }
 
 input,button {
   width:100%;
   padding:10px;
   margin-top:10px;
-  border-radius:8px;
-  border:none;
-}
-
-button { background:#22c55e; color:white; }
-.saida { background:#ef4444; }
-
-.item {
-  background:#020617;
-  padding:10px;
-  margin-top:5px;
-  border-radius:8px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<h2>LOGIN</h2>
 
-<h1>💰 Finanças MPS</h1>
+<input id="email" placeholder="Email">
+<input id="senha" type="password" placeholder="Senha">
 
-<!-- LOGIN -->
-<div id="login" class="card">
-  <input id="email" placeholder="Email">
-  <input id="senha" type="password" placeholder="Senha">
-  <button onclick="login()">Entrar</button>
-  <button onclick="signup()">Criar conta</button>
-</div>
+<button onclick="signup()">Criar conta</button>
+<button onclick="login()">Entrar</button>
 
-<!-- APP -->
-<div id="app" style="display:none;">
+<script>
 
-<div class="card">
-  <h2>Saldo: R$ <span id="saldo">0</span></h2>
-
-  <input id="valor" placeholder="Valor">
-  <input id="descricao" placeholder="Descrição">
-
-  <button onclick="entrada()">Entrada</button>
-  <button class="saida" onclick="saida()">Saída</button>
-</div>
-
-<div class="card">
-  <h3>📊 Histórico</h3>
-  <div id="historico"></div>
-</div>
-
-<div class="card">
-  <h3>🧾 Dívidas</h3>
-
-  <input id="nome" placeholder="Nome">
-  <input id="valorDivida" placeholder="Valor">
-  <input id="parcelas" placeholder="Parcelas">
-
-  <button onclick="addDivida()">Adicionar</button>
-
-  <div id="dividas"></div>
-</div>
-
-<button onclick="logout()">Sair</button>
-
-</div>
-
-</div>
-
-<script type="module">
-
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
-
-const supabase = createClient(
+const supabase = window.supabase.createClient(
   "https://hhbgoratecpjfhohowoe.supabase.co",
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
 );
 
-let user = null;
-
-// 🔥 LOGIN AUTOMÁTICO
-supabase.auth.onAuthStateChange((event, session) => {
-  if (session) {
-    user = session.user;
-    document.getElementById("login").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    carregar();
-  } else {
-    document.getElementById("login").style.display = "block";
-    document.getElementById("app").style.display = "none";
-  }
-});
-
-// LOGIN
-window.login = async function() {
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password: senha
+// 🔥 TESTE DE LOGIN
+async function login() {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: document.getElementById("email").value,
+    password: document.getElementById("senha").value
   });
 
-  if (error) alert(error.message);
-};
+  console.log(data, error);
 
-// CADASTRO + LOGIN AUTOMÁTICO
-window.signup = async function() {
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  alert("LOGIN FUNCIONOU");
+}
+
+// 🔥 TESTE DE CADASTRO
+async function signup() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
 
@@ -147,106 +71,9 @@ window.signup = async function() {
     return;
   }
 
-  await supabase.auth.signInWithPassword({
-    email,
-    password: senha
-  });
-};
-
-// TRANSAÇÕES
-window.entrada = async function() {
-  if (!user) return alert("Faça login");
-
-  await supabase.from("transacoes").insert([{
-    user_id: user.id,
-    valor: Number(valor.value),
-    tipo: "entrada",
-    descricao: descricao.value
-  }]);
-
-  carregar();
-};
-
-window.saida = async function() {
-  if (!user) return alert("Faça login");
-
-  await supabase.from("transacoes").insert([{
-    user_id: user.id,
-    valor: Number(valor.value),
-    tipo: "saida",
-    descricao: descricao.value
-  }]);
-
-  carregar();
-};
-
-// CARREGAR
-async function carregar() {
-  const { data } = await supabase
-    .from("transacoes")
-    .select("*")
-    .eq("user_id", user.id);
-
-  let saldo = 0;
-  historico.innerHTML = "";
-
-  data.forEach(t => {
-    if (t.tipo === "entrada") saldo += t.valor;
-    else saldo -= t.valor;
-
-    historico.innerHTML += `
-      <div class="item">
-        ${t.tipo === "entrada" ? "+" : "-"} R$ ${t.valor}<br>
-        ${t.descricao}
-      </div>
-    `;
-  });
-
-  document.getElementById("saldo").innerText = saldo;
-
-  carregarDividas();
+  // login automático
+  await login();
 }
-
-// DIVIDAS
-window.addDivida = async function() {
-  await supabase.from("dividas").insert([{
-    user_id: user.id,
-    nome: nome.value,
-    valor: valorDivida.value,
-    parcelas: parcelas.value,
-    parcelas_pagas: 0
-  }]);
-
-  carregarDividas();
-};
-
-async function carregarDividas() {
-  const { data } = await supabase
-    .from("dividas")
-    .select("*")
-    .eq("user_id", user.id);
-
-  dividas.innerHTML = "";
-
-  data.forEach(d => {
-    let prog = (d.parcelas_pagas/d.parcelas)*100;
-
-    dividas.innerHTML += `
-      <div class="item">
-        ${d.nome}<br>
-        ${d.parcelas_pagas}/${d.parcelas}
-        <div style="background:#000;height:5px">
-          <div style="width:${prog}%;background:#22c55e;height:5px"></div>
-        </div>
-      </div>
-    `;
-  });
-}
-
-// LOGOUT
-window.logout = async function() {
-  await supabase.auth.signOut();
-};
 
 </script>
 
