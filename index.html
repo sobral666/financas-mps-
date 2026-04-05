@@ -86,17 +86,39 @@ button { background:#22c55e; color:white; }
 
 <script>
 
-// 🔥 GARANTE QUE CARREGOU
-if (!window.supabase) {
-  alert("Erro carregando Supabase");
-}
-
-const supabase = window.supabase.createClient(
-  "https://hhbgoratecpjfhohowoe.supabase.co",
-  "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
-);
-
+let supabase;
 let user = null;
+
+// 🔥 ESPERA O SUPABASE CARREGAR
+window.onload = function() {
+
+  if (!window.supabase) {
+    alert("Supabase não carregou");
+    return;
+  }
+
+  supabase = window.supabase.createClient(
+    "https://hhbgoratecpjfhohowoe.supabase.co",
+    "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
+  );
+
+  iniciar();
+};
+
+// INICIAR APP
+function iniciar() {
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (session) {
+      user = session.user;
+      document.getElementById("login").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      carregar();
+    }
+  });
+
+}
+</script>
 
 // LOGIN AUTOMÁTICO
 supabase.auth.onAuthStateChange((event, session) => {
