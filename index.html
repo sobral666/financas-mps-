@@ -2,71 +2,89 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Teste Supabase</title>
+<title>Finanças MPS</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 body {
+  margin: 0;
   font-family: Arial;
-  background: #111;
   color: white;
+
+  background: linear-gradient(
+    rgba(0,0,0,0.7),
+    rgba(0,0,0,0.9)
+  ),
+  url("./fundo.jpg");
+
+  background-size: cover;
+  background-position: center;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
   padding: 20px;
 }
+
+.card {
+  background: rgba(0,0,0,0.6);
+  padding: 20px;
+  border-radius: 16px;
+  margin-top: 15px;
+}
+
 input, button {
-  padding: 10px;
-  margin: 5px;
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: none;
+}
+
+button {
+  background: #22c55e;
+  color: white;
+  font-weight: bold;
 }
 </style>
 </head>
 
 <body>
 
-<h2>TESTE LOGIN</h2>
+<div class="container">
 
-<input id="email" placeholder="Email">
-<input id="senha" type="password" placeholder="Senha">
+<h1>🏗️ Finanças MPS</h1>
 
-<button onclick="signup()">Criar conta</button>
-<button onclick="login()">Entrar</button>
+<!-- LOGIN -->
+<div id="login" class="card">
+  <input id="email" placeholder="Email">
+  <input id="senha" type="password" placeholder="Senha">
+
+  <button onclick="login()">Entrar</button>
+  <button onclick="signup()">Criar conta</button>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;" class="card">
+  <h2>Você está logado 🎉</h2>
+  <button onclick="logout()">Sair</button>
+</div>
+
+</div>
 
 <script>
 
-// CRIA CLIENTE CERTO
 const supabaseClient = window.supabase.createClient(
   "https://hhbgoratecpjfhohowoe.supabase.co",
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
 );
 
-// TESTE VISUAL
-alert("JS CARREGOU");
-
-// CADASTRO
-async function signup() {
-  alert("clicou signup");
-
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
-
-  const { data, error } = await supabaseClient.auth.signUp({
-    email,
-    password: senha
-  });
-
-  console.log(data, error);
-
-  if (error) {
-    alert("Erro: " + error.message);
-    return;
-  }
-
-  alert("Conta criada!");
-}
+let user = null;
 
 // LOGIN
 async function login() {
-  alert("clicou login");
-
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
 
@@ -75,14 +93,54 @@ async function login() {
     password: senha
   });
 
-  console.log(data, error);
-
   if (error) {
-    alert("Erro: " + error.message);
+    alert(error.message);
     return;
   }
 
-  alert("LOGIN OK!");
+  user = data.user;
+  entrar();
+}
+
+// CADASTRO + LOGIN AUTOMÁTICO
+async function signup() {
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
+
+  const { error } = await supabaseClient.auth.signUp({
+    email,
+    password: senha
+  });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  // login automático
+  const { data, error: loginError } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password: senha
+  });
+
+  if (loginError) {
+    alert("Conta criada! Agora clica em entrar");
+    return;
+  }
+
+  user = data.user;
+  entrar();
+}
+
+// ENTRAR NO APP
+function entrar() {
+  document.getElementById("login").style.display = "none";
+  document.getElementById("app").style.display = "block";
+}
+
+// LOGOUT
+function logout() {
+  location.reload();
 }
 
 </script>
