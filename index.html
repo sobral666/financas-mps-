@@ -177,24 +177,34 @@ async function login() {
   entrar();
 }
 
-// CADASTRO
+// 🔥 CADASTRO CORRIGIDO (LOGIN AUTOMÁTICO)
 async function signup() {
   const email = emailInput();
   const senha = senhaInput();
 
-  const { data, error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signUp({
     email,
     password: senha
   });
 
-  if (error) return alert(error.message);
-
-  if (data.session) {
-    user = data.user;
-    entrar();
-  } else {
-    alert("Conta criada! Agora faça login.");
+  if (error) {
+    alert(error.message);
+    return;
   }
+
+  // FORÇA LOGIN
+  const { data, error: loginError } = await supabase.auth.signInWithPassword({
+    email,
+    password: senha
+  });
+
+  if (loginError) {
+    alert("Conta criada! Clique em entrar.");
+    return;
+  }
+
+  user = data.user;
+  entrar();
 }
 
 // AUTO LOGIN
@@ -208,7 +218,7 @@ async function verificarSessao() {
 }
 verificarSessao();
 
-// CATEGORIA AUTOMÁTICA
+// CATEGORIA
 function categoria(desc) {
   desc = desc.toLowerCase();
 
@@ -219,7 +229,7 @@ function categoria(desc) {
   return "📦 Outros";
 }
 
-// ADICIONAR
+// TRANSAÇÕES
 async function addEntrada() {
   await supabase.from("transacoes").insert([{
     user_id: user.id,
@@ -244,7 +254,6 @@ async function addSaida() {
   carregarTudo();
 }
 
-// CARREGAR
 async function carregarTudo() {
   carregarTransacoes();
   carregarDividas();
