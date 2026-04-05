@@ -86,6 +86,11 @@ button { background:#22c55e; color:white; }
 
 <script>
 
+// 🔥 GARANTE QUE CARREGOU
+if (!window.supabase) {
+  alert("Erro carregando Supabase");
+}
+
 const supabase = window.supabase.createClient(
   "https://hhbgoratecpjfhohowoe.supabase.co",
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
@@ -100,9 +105,6 @@ supabase.auth.onAuthStateChange((event, session) => {
     document.getElementById("login").style.display = "none";
     document.getElementById("app").style.display = "block";
     carregar();
-  } else {
-    document.getElementById("login").style.display = "block";
-    document.getElementById("app").style.display = "none";
   }
 });
 
@@ -187,6 +189,7 @@ async function carregar() {
 // LOGOUT
 async function logout() {
   await supabase.auth.signOut();
+  location.reload();
 }
 
 </script>
