@@ -2,63 +2,58 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>TESTE LOGIN</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>TESTE FINAL</title>
 </head>
 
-<body style="background:#111;color:white;font-family:Arial;padding:20px;">
+<body style="background:#111;color:white;padding:20px;">
 
-<h2>TESTE REAL</h2>
+<h2>TESTE SUPABASE</h2>
 
 <input id="email" placeholder="Email"><br><br>
 <input id="senha" type="password" placeholder="Senha"><br><br>
 
-<button onclick="signup()">Criar conta</button>
-<button onclick="login()">Entrar</button>
+<button onclick="criar()">Criar conta</button>
+<button onclick="entrar()">Entrar</button>
 
-<script>
+<script type="module">
 
-const supabase = window.supabase.createClient(
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+const supabase = createClient(
   "https://hhbgoratecpjfhohowoe.supabase.co",
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
 );
 
-// 🔥 MONITOR DE LOGIN
+alert("Supabase carregado");
+
 supabase.auth.onAuthStateChange((event, session) => {
-  console.log("EVENTO:", event);
-  console.log("SESSION:", session);
+  console.log(event, session);
 
   if (session) {
-    alert("LOGADO COM SUCESSO");
+    alert("LOGADO!!!");
   }
 });
 
-// CADASTRO
-async function signup() {
+window.criar = async function() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
 
-  const { data, error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signUp({
     email,
     password: senha
   });
-
-  console.log("SIGNUP:", data, error);
 
   if (error) alert(error.message);
 }
 
-// LOGIN
-async function login() {
+window.entrar = async function() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { error } = await supabase.auth.signInWithPassword({
     email,
     password: senha
   });
-
-  console.log("LOGIN:", data, error);
 
   if (error) alert(error.message);
 }
