@@ -163,24 +163,27 @@ function entrar() {
 
 // LOGIN
 async function login() {
-  const email = emailInput();
-  const senha = senhaInput();
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password: senha
   });
 
-  if (error) return alert(error.message);
+  if (error) {
+    alert(error.message);
+    return;
+  }
 
   user = data.user;
   entrar();
 }
 
-// 🔥 CADASTRO CORRIGIDO (LOGIN AUTOMÁTICO)
+// CADASTRO (CORRIGIDO)
 async function signup() {
-  const email = emailInput();
-  const senha = senhaInput();
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
 
   const { error } = await supabase.auth.signUp({
     email,
@@ -192,19 +195,19 @@ async function signup() {
     return;
   }
 
-  // FORÇA LOGIN
-  const { data, error: loginError } = await supabase.auth.signInWithPassword({
-    email,
-    password: senha
-  });
+  alert("Conta criada com sucesso!");
 
-  if (loginError) {
-    alert("Conta criada! Clique em entrar.");
-    return;
-  }
+  // espera sessão
+  setTimeout(async () => {
+    const { data } = await supabase.auth.getSession();
 
-  user = data.user;
-  entrar();
+    if (data.session) {
+      user = data.session.user;
+      entrar();
+    } else {
+      alert("Agora clique em ENTRAR");
+    }
+  }, 1000);
 }
 
 // AUTO LOGIN
@@ -233,10 +236,10 @@ function categoria(desc) {
 async function addEntrada() {
   await supabase.from("transacoes").insert([{
     user_id: user.id,
-    valor: Number(valor.value),
+    valor: Number(document.getElementById("valor").value),
     tipo: "entrada",
-    categoria: categoria(descricao.value),
-    descricao: descricao.value
+    categoria: categoria(document.getElementById("descricao").value),
+    descricao: document.getElementById("descricao").value
   }]);
 
   carregarTudo();
@@ -245,10 +248,10 @@ async function addEntrada() {
 async function addSaida() {
   await supabase.from("transacoes").insert([{
     user_id: user.id,
-    valor: Number(valor.value),
+    valor: Number(document.getElementById("valor").value),
     tipo: "saida",
-    categoria: categoria(descricao.value),
-    descricao: descricao.value
+    categoria: categoria(document.getElementById("descricao").value),
+    descricao: document.getElementById("descricao").value
   }]);
 
   carregarTudo();
@@ -267,6 +270,7 @@ async function carregarTransacoes() {
 
   let total = 0, ent = 0, sai = 0;
 
+  const historico = document.getElementById("historico");
   historico.innerHTML = "";
 
   data.forEach(t => {
@@ -287,18 +291,18 @@ async function carregarTransacoes() {
     historico.appendChild(li);
   });
 
-  saldo.innerText = total;
-  entrada.innerText = ent;
-  saida.innerText = sai;
+  document.getElementById("saldo").innerText = total;
+  document.getElementById("entrada").innerText = ent;
+  document.getElementById("saida").innerText = sai;
 }
 
 // DIVIDAS
 async function addDivida() {
   await supabase.from("dividas").insert([{
     user_id: user.id,
-    nome: nome.value,
-    valor: valorDivida.value,
-    parcelas: parcelas.value,
+    nome: document.getElementById("nome").value,
+    valor: document.getElementById("valorDivida").value,
+    parcelas: document.getElementById("parcelas").value,
     parcelas_pagas: 0
   }]);
 
@@ -320,6 +324,7 @@ async function carregarDividas() {
     .select("*")
     .eq("user_id", user.id);
 
+  const lista = document.getElementById("lista");
   lista.innerHTML = "";
 
   data.forEach(d => {
@@ -342,15 +347,6 @@ async function carregarDividas() {
 
     lista.appendChild(li);
   });
-}
-
-// HELPERS
-function emailInput() {
-  return document.getElementById("email").value;
-}
-
-function senhaInput() {
-  return document.getElementById("senha").value;
 }
 
 // LOGOUT
