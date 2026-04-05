@@ -3,24 +3,24 @@
 <head>
   <title>Finanças MPS</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body {
       margin: 0;
-      background: #020617;
+      background: linear-gradient(180deg,#020617,#0f172a);
       color: white;
       font-family: Arial;
     }
 
-    .container {
-      padding: 20px;
-    }
+    .container { padding: 20px; }
 
     .card {
       background: #0f172a;
       padding: 20px;
       border-radius: 16px;
       margin-top: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
 
     input {
@@ -44,13 +44,31 @@
       font-weight: bold;
     }
 
-    .danger {
-      background: #ef4444;
-    }
+    .saida { background: #ef4444; }
 
     .saldo {
-      font-size: 28px;
+      font-size: 34px;
       font-weight: bold;
+    }
+
+    .resumo {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .barra {
+      height: 8px;
+      background: #020617;
+      border-radius: 10px;
+      margin-top: 5px;
+    }
+
+    .progresso {
+      height: 8px;
+      background: #22c55e;
+      border-radius: 10px;
     }
 
     li {
@@ -80,20 +98,27 @@
   <div class="card">
     <div class="saldo">R$ <span id="saldo">0</span></div>
 
+    <div class="resumo">
+      <span>Entrada: R$ <span id="entrada">0</span></span>
+      <span>Saída: R$ <span id="saida">0</span></span>
+    </div>
+
     <input id="valor" placeholder="Valor">
+    <input id="descricao" placeholder="Descrição">
     <button onclick="addEntrada()">Entrada</button>
-    <button class="danger" onclick="addSaida()">Saída</button>
+    <button class="saida" onclick="addSaida()">Saída</button>
   </div>
 
   <div class="card">
-    <h3>📊 Histórico</h3>
-    <ul id="historico"></ul>
+    <h3>📊 Gastos por categoria</h3>
+    <canvas id="grafico"></canvas>
   </div>
 
   <div class="card">
-    <h3>🧾 Me Devem</h3>
+    <h3>🧾 Dívidas</h3>
     <input id="nome">
     <input id="valorDivida">
+    <input id="parcelas">
     <button onclick="addDivida()">Adicionar</button>
     <ul id="lista"></ul>
   </div>
@@ -111,6 +136,7 @@ const supabaseClient = supabase.createClient(
 );
 
 let user = null;
+let chart;
 
 // LOGIN
 async function login() {
@@ -119,10 +145,7 @@ async function login() {
     password: senha.value
   });
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+  if (error) return alert(error.message);
 
   user = data.user;
   iniciar();
@@ -135,77 +158,118 @@ async function signup() {
     password: senha.value
   });
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+  if (error) return alert(error.message);
 
-  alert("Conta criada! Agora clique em ENTRAR");
+  alert("Conta criada!");
 }
 
 // INICIAR
 async function iniciar() {
-  document.getElementById("login").style.display = "none";
-  document.getElementById("app").style.display = "block";
-
-  carregarSaldo();
-  carregarHistorico();
-  carregarDividas();
+  login.style.display = "none";
+  app.style.display = "block";
+  carregarTudo();
 }
 
-// SALDO
-async function carregarSaldo() {
+// CATEGORIA
+function categoria(desc) {
+  desc = desc.toLowerCase();
+
+  if (desc.includes("lanche") || desc.includes("comida")) return "Alimentação";
+  if (desc.includes("uber") || desc.includes("gasolina")) return "Transporte";
+  if (desc.includes("salario")) return "Receita";
+
+  return "Outros";
+}
+
+// CARREGAR TUDO
+async function carregarTudo() {
   const { data } = await supabaseClient
     .from("transacoes")
     .select("*")
     .eq("user_id", user.id);
 
-  let total = 0;
+  let total = 0, ent = 0, sai = 0;
+  let categorias = {};
 
   data.forEach(t => {
-    total += t.tipo === "entrada" ? t.valor : -t.valor;
+    if (t.tipo === "entrada") {
+      total += t.valor;
+      ent += t.valor;
+    } else {
+      total -= t.valor;
+      sai += t.valor;
+
+      categorias[t.categoria] = (categorias[t.categoria] || 0) + t.valor;
+    }
   });
 
   saldo.innerText = total;
+  entrada.innerText = ent;
+  saida.innerText = sai;
+
+  desenharGrafico(categorias);
+  carregarDividas();
+}
+
+// GRÁFICO
+function desenharGrafico(dados) {
+  if (chart) chart.destroy();
+
+  chart = new Chart(grafico, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(dados),
+      datasets: [{
+        data: Object.values(dados)
+      }]
+    }
+  });
 }
 
 // ENTRADA
 async function addEntrada() {
-  await supabaseClient.from("transacoes").insert([
-    { user_id: user.id, valor: Number(valor.value), tipo: "entrada" }
-  ]);
-  atualizar();
+  await supabaseClient.from("transacoes").insert([{
+    user_id: user.id,
+    tipo: "entrada",
+    valor: Number(valor.value),
+    descricao: descricao.value,
+    categoria: categoria(descricao.value)
+  }]);
+
+  carregarTudo();
 }
 
 // SAÍDA
 async function addSaida() {
-  await supabaseClient.from("transacoes").insert([
-    { user_id: user.id, valor: Number(valor.value), tipo: "saida" }
-  ]);
-  atualizar();
-}
+  await supabaseClient.from("transacoes").insert([{
+    user_id: user.id,
+    tipo: "saida",
+    valor: Number(valor.value),
+    descricao: descricao.value,
+    categoria: categoria(descricao.value)
+  }]);
 
-// HISTÓRICO
-async function carregarHistorico() {
-  const { data } = await supabaseClient
-    .from("transacoes")
-    .select("*")
-    .eq("user_id", user.id);
-
-  historico.innerHTML = "";
-
-  data.forEach(t => {
-    const li = document.createElement("li");
-    li.innerText = `${t.tipo} - R$ ${t.valor}`;
-    historico.appendChild(li);
-  });
+  carregarTudo();
 }
 
 // DIVIDAS
 async function addDivida() {
-  await supabaseClient.from("dividas").insert([
-    { user_id: user.id, nome: nome.value, valor: valorDivida.value }
-  ]);
+  await supabaseClient.from("dividas").insert([{
+    user_id: user.id,
+    nome: nome.value,
+    valor_total: valorDivida.value,
+    parcelas_total: parcelas.value
+  }]);
+
+  carregarDividas();
+}
+
+async function pagarParcela(id, pagas) {
+  await supabaseClient
+    .from("dividas")
+    .update({ parcelas_pagas: pagas + 1 })
+    .eq("id", id);
+
   carregarDividas();
 }
 
@@ -218,16 +282,24 @@ async function carregarDividas() {
   lista.innerHTML = "";
 
   data.forEach(d => {
+    const faltam = d.parcelas_total - d.parcelas_pagas;
+    const progresso = (d.parcelas_pagas / d.parcelas_total) * 100;
+
     const li = document.createElement("li");
-    li.innerText = `${d.nome} - R$ ${d.valor}`;
+    li.innerHTML = `
+      <b>${d.nome}</b><br>
+      R$ ${d.valor_total}<br>
+      ${d.parcelas_pagas}/${d.parcelas_total}<br>
+
+      <div class="barra">
+        <div class="progresso" style="width:${progresso}%"></div>
+      </div>
+
+      <button onclick="pagarParcela('${d.id}', ${d.parcelas_pagas})">Pagar</button>
+    `;
+
     lista.appendChild(li);
   });
-}
-
-// ATUALIZAR
-function atualizar() {
-  carregarSaldo();
-  carregarHistorico();
 }
 
 // LOGOUT
