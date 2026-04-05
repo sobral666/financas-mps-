@@ -1,175 +1,167 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Finanças MPS</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<title>Finanças MPS</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      color: white;
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
-      background: url("https://images.unsplash.com/photo-1621416894569-0f39ed31d247") no-repeat center center fixed;
-      background-size: cover;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  color: white;
 
-    .container {
-      padding: 20px;
-    }
+  background: linear-gradient(
+    rgba(0,0,0,0.75),
+    rgba(0,0,0,0.9)
+  ),
+  url("fundo.jpg");
 
-    .card {
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(15px);
-      padding: 20px;
-      border-radius: 16px;
-      margin-top: 15px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.7);
-    }
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
 
-    input {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border-radius: 10px;
-      border: none;
-      background: rgba(0,0,0,0.6);
-      color: white;
-    }
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
 
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border-radius: 10px;
-      border: none;
-      background: #22c55e;
-      color: white;
-      font-weight: bold;
-    }
+h1 {
+  font-size: 32px;
+}
 
-    .saida {
-      background: #ef4444;
-    }
+.card {
+  background: rgba(10,10,10,0.85);
+  backdrop-filter: blur(12px);
+  padding: 20px;
+  border-radius: 16px;
+  margin-top: 15px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 0 30px rgba(0,0,0,0.8);
+}
 
-    .saldo {
-      font-size: 34px;
-      font-weight: bold;
-    }
+input, button, select {
+  padding: 12px;
+  margin: 5px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+}
 
-    .resumo {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-      font-size: 14px;
-    }
+input {
+  width: 90%;
+}
 
-    .barra {
-      height: 8px;
-      background: #000;
-      border-radius: 10px;
-      margin-top: 5px;
-    }
+button {
+  background: #22c55e;
+  color: white;
+  cursor: pointer;
+}
 
-    .progresso {
-      height: 8px;
-      background: #22c55e;
-      border-radius: 10px;
-    }
+button:hover {
+  background: #16a34a;
+}
 
-    li {
-      background: rgba(0,0,0,0.6);
-      padding: 10px;
-      border-radius: 10px;
-      margin-top: 5px;
-    }
-  </style>
+.btn-danger {
+  background: #ef4444;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.flex {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.item {
+  margin: 5px;
+}
+</style>
 </head>
 
 <body>
 
+<div class="container">
+
+<h1>🏗️ Finanças MPS</h1>
+<p style="opacity:0.7;">Controle financeiro de obras e investimentos</p>
+
 <!-- LOGIN -->
-<div id="login" style="display:flex; height:100vh; align-items:center; justify-content:center;">
-
-  <div style="
-    width: 90%;
-    max-width: 400px;
-    padding: 30px;
-    border-radius: 20px;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(15px);
-    text-align: center;
-  ">
-
-    <h2>💰 Finanças MPS</h2>
-
-    <input id="email" placeholder="Email">
-    <input id="senha" type="password" placeholder="Senha">
-
-    <button onclick="login()">Entrar</button>
-    <button onclick="signup()" style="background:#334155;">
-      Criar conta
-    </button>
-
-  </div>
+<div id="login" class="card">
+  <h3>Login</h3>
+  <input id="email" placeholder="Email"><br>
+  <input id="senha" type="password" placeholder="Senha"><br>
+  <button onclick="login()">Entrar</button>
+  <button onclick="signup()">Criar conta</button>
 </div>
 
 <!-- APP -->
-<div id="app" style="display:none;" class="container">
+<div id="app" style="display:none;">
 
-  <h1>💰 Finanças MPS</h1>
+<div class="card">
+  <h2>💰 Saldo: R$ <span id="saldo">0</span></h2>
 
-  <div class="card">
-    <div class="saldo">R$ <span id="saldo">0</span></div>
+  <input id="valor" type="number" placeholder="Valor">
+  <select id="tipo">
+    <option value="entrada">Entrada (salário)</option>
+    <option value="saida">Saída (lanche)</option>
+  </select>
 
-    <div class="resumo">
-      <span>Entrada: R$ <span id="entrada">0</span></span>
-      <span>Saída: R$ <span id="saida">0</span></span>
-    </div>
+  <select id="categoria">
+    <option>Salário</option>
+    <option>Comida</option>
+    <option>Transporte</option>
+    <option>Material</option>
+  </select>
 
-    <input id="valor" placeholder="Valor">
-    <input id="descricao" placeholder="Descrição">
+  <button onclick="addTransacao()">Adicionar</button>
+</div>
 
-    <button onclick="addEntrada()">Entrada</button>
-    <button class="saida" onclick="addSaida()">Saída</button>
-  </div>
+<div class="card">
+  <h3>📊 Histórico</h3>
+  <ul id="transacoes"></ul>
+</div>
 
-  <div class="card">
-    <h3>📊 Gastos</h3>
-    <canvas id="grafico"></canvas>
-  </div>
+<div class="card">
+  <h3>🧾 Devedores</h3>
 
-  <div class="card">
-    <h3>🧾 Dívidas</h3>
+  <input id="nome" placeholder="Nome">
+  <input id="valorDivida" placeholder="Valor total">
+  <input id="parcelas" placeholder="Parcelas">
 
-    <input id="nome" placeholder="Nome">
-    <input id="valorDivida" placeholder="Valor total">
-    <input id="parcelas" placeholder="Parcelas">
+  <button onclick="addDivida()">Adicionar</button>
 
-    <button onclick="addDivida()">Adicionar</button>
+  <ul id="lista"></ul>
+</div>
 
-    <ul id="lista"></ul>
-  </div>
+<button class="btn-danger" onclick="logout()">Sair</button>
 
-  <button onclick="logout()">Sair</button>
+</div>
 
 </div>
 
 <script>
-const supabaseClient = supabase.createClient(
+
+const supabase = window.supabase.createClient(
   "https://hhbgoratecpjfhohowoe.supabase.co",
   "sb_publishable_9KRPr2qXdr6IzMTCADA2CA_TgQBOuF5"
 );
 
 let user = null;
-let chart;
 
 // LOGIN
 async function login() {
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email: email.value,
-    password: senha.value
+  const email = emailInput();
+  const senha = senhaInput();
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password: senha
   });
 
   if (error) return alert(error.message);
@@ -180,116 +172,84 @@ async function login() {
 
 // CADASTRO
 async function signup() {
-  const { error } = await supabaseClient.auth.signUp({
-    email: email.value,
-    password: senha.value
+  const email = emailInput();
+  const senha = senhaInput();
+
+  const { error } = await supabase.auth.signUp({
+    email,
+    password: senha
   });
 
   if (error) return alert(error.message);
 
-  alert("Conta criada!");
+  alert("Conta criada! Agora entra 👍");
 }
 
 // INICIAR
 async function iniciar() {
-  login.style.display = "none";
-  app.style.display = "block";
-  carregarTudo();
+  document.getElementById("login").style.display = "none";
+  document.getElementById("app").style.display = "block";
+
+  carregarTransacoes();
+  carregarDividas();
 }
 
-// CATEGORIA
-function categoria(desc) {
-  desc = desc.toLowerCase();
+// TRANSACOES
+async function addTransacao() {
+  const valor = Number(document.getElementById("valor").value);
+  const tipo = document.getElementById("tipo").value;
+  const categoria = document.getElementById("categoria").value;
 
-  if (desc.includes("lanche") || desc.includes("comida")) return "Alimentação";
-  if (desc.includes("uber") || desc.includes("gasolina")) return "Transporte";
-  if (desc.includes("salario")) return "Receita";
+  await supabase.from("transacoes").insert([
+    { user_id: user.id, valor, tipo, categoria }
+  ]);
 
-  return "Outros";
+  carregarTransacoes();
 }
 
-// CARREGAR
-async function carregarTudo() {
-  const { data } = await supabaseClient
+async function carregarTransacoes() {
+  const { data } = await supabase
     .from("transacoes")
     .select("*")
     .eq("user_id", user.id);
 
-  let total = 0, ent = 0, sai = 0;
-  let categorias = {};
+  let saldo = 0;
+  const lista = document.getElementById("transacoes");
+  lista.innerHTML = "";
 
   data.forEach(t => {
-    if (t.tipo === "entrada") {
-      total += t.valor;
-      ent += t.valor;
-    } else {
-      total -= t.valor;
-      sai += t.valor;
-      categorias[t.categoria] = (categorias[t.categoria] || 0) + t.valor;
-    }
+    if (t.tipo === "entrada") saldo += t.valor;
+    else saldo -= t.valor;
+
+    const li = document.createElement("li");
+    li.innerText = `${t.tipo} - ${t.categoria} - R$ ${t.valor}`;
+    lista.appendChild(li);
   });
 
-  saldo.innerText = total;
-  entrada.innerText = ent;
-  saida.innerText = sai;
-
-  desenharGrafico(categorias);
-  carregarDividas();
-}
-
-// GRÁFICO
-function desenharGrafico(dados) {
-  if (chart) chart.destroy();
-
-  chart = new Chart(grafico, {
-    type: 'doughnut',
-    data: {
-      labels: Object.keys(dados),
-      datasets: [{ data: Object.values(dados) }]
-    }
-  });
-}
-
-// ENTRADA
-async function addEntrada() {
-  await supabaseClient.from("transacoes").insert([{
-    user_id: user.id,
-    tipo: "entrada",
-    valor: Number(valor.value),
-    descricao: descricao.value,
-    categoria: categoria(descricao.value)
-  }]);
-
-  carregarTudo();
-}
-
-// SAÍDA
-async function addSaida() {
-  await supabaseClient.from("transacoes").insert([{
-    user_id: user.id,
-    tipo: "saida",
-    valor: Number(valor.value),
-    descricao: descricao.value,
-    categoria: categoria(descricao.value)
-  }]);
-
-  carregarTudo();
+  document.getElementById("saldo").innerText = saldo;
 }
 
 // DIVIDAS
 async function addDivida() {
-  await supabaseClient.from("dividas").insert([{
-    user_id: user.id,
-    nome: nome.value,
-    valor_total: valorDivida.value,
-    parcelas_total: parcelas.value
-  }]);
+  const nome = document.getElementById("nome").value;
+  const valor = document.getElementById("valorDivida").value;
+  const parcelas = document.getElementById("parcelas").value;
+
+  await supabase.from("dividas").insert([
+    {
+      user_id: user.id,
+      nome,
+      valor,
+      parcelas,
+      parcelas_pagas: 0
+    }
+  ]);
 
   carregarDividas();
 }
 
 async function pagarParcela(id, pagas) {
-  await supabaseClient
+  await supabase
     .from("dividas")
     .update({ parcelas_pagas: pagas + 1 })
     .eq("id", id);
@@ -298,28 +258,22 @@ async function pagarParcela(id, pagas) {
 }
 
 async function carregarDividas() {
-  const { data } = await supabaseClient
+  const { data } = await supabase
     .from("dividas")
     .select("*")
     .eq("user_id", user.id);
 
+  const lista = document.getElementById("lista");
   lista.innerHTML = "";
 
   data.forEach(d => {
-    const progresso = (d.parcelas_pagas / d.parcelas_total) * 100;
-
     const li = document.createElement("li");
+
     li.innerHTML = `
-      <b>${d.nome}</b><br>
-      R$ ${d.valor_total}<br>
-      ${d.parcelas_pagas}/${d.parcelas_total}
-
-      <div class="barra">
-        <div class="progresso" style="width:${progresso}%"></div>
-      </div>
-
+      ${d.nome} - R$ ${d.valor}
+      (${d.parcelas_pagas}/${d.parcelas})
       <button onclick="pagarParcela('${d.id}', ${d.parcelas_pagas})">
-        Pagar parcela
+        Pagar
       </button>
     `;
 
@@ -327,10 +281,20 @@ async function carregarDividas() {
   });
 }
 
+// HELPERS
+function emailInput() {
+  return document.getElementById("email").value;
+}
+
+function senhaInput() {
+  return document.getElementById("senha").value;
+}
+
 // LOGOUT
 function logout() {
   location.reload();
 }
+
 </script>
 
 </body>
