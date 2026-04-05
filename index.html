@@ -6,67 +6,41 @@
 
 <style>
 body {
-  margin: 0;
-  font-family: Arial;
-  background: #0f172a;
-  color: white;
+  background:#0f172a;
+  color:white;
+  font-family:Arial;
+  margin:0;
+  padding:20px;
 }
 
 .container {
-  max-width: 900px;
-  margin: auto;
-  padding: 20px;
+  max-width:900px;
+  margin:auto;
 }
 
 .card {
-  background: #1e293b;
-  padding: 20px;
-  border-radius: 16px;
-  margin-top: 15px;
+  background:#1e293b;
+  padding:20px;
+  border-radius:12px;
+  margin-top:15px;
 }
 
-input, button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border-radius: 8px;
-  border: none;
+input,button {
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border-radius:8px;
+  border:none;
 }
 
-button {
-  background: #22c55e;
-  color: white;
-}
-
-.saida { background: #ef4444; }
-
-.topo {
-  font-size: 28px;
-  font-weight: bold;
-}
-
-.linha {
-  display: flex;
-  justify-content: space-between;
-}
+button { background:#22c55e; color:white; }
+.saida { background:#ef4444; }
 
 .item {
-  background: #020617;
-  padding: 10px;
-  border-radius: 10px;
-  margin-top: 5px;
-}
-
-.progresso {
-  height: 6px;
-  background: #22c55e;
-  border-radius: 10px;
-}
-
-.barra {
-  background: #000;
-  height: 6px;
-  border-radius: 10px;
+  background:#020617;
+  padding:10px;
+  margin-top:5px;
+  border-radius:8px;
 }
 </style>
 </head>
@@ -77,6 +51,7 @@ button {
 
 <h1>💰 Finanças MPS</h1>
 
+<!-- LOGIN -->
 <div id="login" class="card">
   <input id="email" placeholder="Email">
   <input id="senha" type="password" placeholder="Senha">
@@ -84,20 +59,17 @@ button {
   <button onclick="signup()">Criar conta</button>
 </div>
 
+<!-- APP -->
 <div id="app" style="display:none;">
 
 <div class="card">
-  <div class="topo">R$ <span id="saldo">0</span></div>
-  <div class="linha">
-    <span>Entrada: <b id="entrada">0</b></span>
-    <span>Saída: <b id="saida">0</b></span>
-  </div>
+  <h2>Saldo: R$ <span id="saldo">0</span></h2>
 
   <input id="valor" placeholder="Valor">
   <input id="descricao" placeholder="Descrição">
 
-  <button onclick="addEntrada()">Entrada</button>
-  <button class="saida" onclick="addSaida()">Saída</button>
+  <button onclick="entrada()">Entrada</button>
+  <button class="saida" onclick="saida()">Saída</button>
 </div>
 
 <div class="card">
@@ -114,7 +86,7 @@ button {
 
   <button onclick="addDivida()">Adicionar</button>
 
-  <div id="lista"></div>
+  <div id="dividas"></div>
 </div>
 
 <button onclick="logout()">Sair</button>
@@ -134,18 +106,15 @@ const supabase = createClient(
 
 let user;
 
-// LOGIN AUTOMÁTICO
+// 🔥 LOGIN AUTOMÁTICO (BASE DO APP)
 supabase.auth.onAuthStateChange((event, session) => {
   if (session) {
     user = session.user;
-    loginDiv.style.display = "none";
+    login.style.display = "none";
     app.style.display = "block";
-    carregarTudo();
+    carregar();
   }
 });
-
-const loginDiv = document.getElementById("login");
-const app = document.getElementById("app");
 
 // LOGIN
 window.login = async () => {
@@ -167,39 +136,29 @@ window.signup = async () => {
   if (error) alert(error.message);
 };
 
-// CATEGORIA
-function cat(d) {
-  d = d.toLowerCase();
-  if (d.includes("lanche")) return "🍔";
-  if (d.includes("uber")) return "🚗";
-  return "💰";
-}
-
 // TRANSAÇÕES
-async function addEntrada() {
+window.entrada = async () => {
   await supabase.from("transacoes").insert([{
     user_id: user.id,
     valor: Number(valor.value),
     tipo: "entrada",
-    categoria: cat(descricao.value),
     descricao: descricao.value
   }]);
-  carregarTudo();
-}
+  carregar();
+};
 
-async function addSaida() {
+window.saida = async () => {
   await supabase.from("transacoes").insert([{
     user_id: user.id,
     valor: Number(valor.value),
     tipo: "saida",
-    categoria: cat(descricao.value),
     descricao: descricao.value
   }]);
-  carregarTudo();
-}
+  carregar();
+};
 
-// CARREGAR
-async function carregarTudo() {
+// CARREGAR DADOS
+async function carregar() {
   carregarTransacoes();
   carregarDividas();
 }
@@ -208,37 +167,33 @@ async function carregarTransacoes() {
   const { data } = await supabase.from("transacoes")
   .select("*").eq("user_id", user.id);
 
-  let saldo = 0, ent = 0, sai = 0;
+  let saldo = 0;
   historico.innerHTML = "";
 
   data.forEach(t => {
-    if (t.tipo === "entrada") {
-      saldo += t.valor; ent += t.valor;
-    } else {
-      saldo -= t.valor; sai += t.valor;
-    }
+    if (t.tipo === "entrada") saldo += t.valor;
+    else saldo -= t.valor;
 
     historico.innerHTML += `
       <div class="item">
-        ${t.categoria} ${t.descricao}<br>
-        R$ ${t.valor}
-        <button onclick="delTrans('${t.id}')">❌</button>
+        ${t.tipo === "entrada" ? "+" : "-"} R$ ${t.valor}<br>
+        ${t.descricao}
+        <button onclick="del('${t.id}')">Excluir</button>
       </div>
     `;
   });
 
   document.getElementById("saldo").innerText = saldo;
-  document.getElementById("entrada").innerText = ent;
-  document.getElementById("saida").innerText = sai;
 }
 
-window.delTrans = async (id) => {
+// DELETE
+window.del = async (id) => {
   await supabase.from("transacoes").delete().eq("id", id);
-  carregarTudo();
+  carregar();
 };
 
 // DIVIDAS
-async function addDivida() {
+window.addDivida = async () => {
   await supabase.from("dividas").insert([{
     user_id: user.id,
     nome: nome.value,
@@ -247,29 +202,23 @@ async function addDivida() {
     parcelas_pagas: 0
   }]);
   carregarDividas();
-}
-
-async function pagar(id, p) {
-  await supabase.from("dividas")
-  .update({ parcelas_pagas: p + 1 }).eq("id", id);
-  carregarDividas();
-}
+};
 
 async function carregarDividas() {
   const { data } = await supabase.from("dividas")
   .select("*").eq("user_id", user.id);
 
-  lista.innerHTML = "";
+  dividas.innerHTML = "";
 
   data.forEach(d => {
     let prog = (d.parcelas_pagas/d.parcelas)*100;
 
-    lista.innerHTML += `
+    dividas.innerHTML += `
       <div class="item">
         ${d.nome}<br>
         ${d.parcelas_pagas}/${d.parcelas}
-        <div class="barra">
-          <div class="progresso" style="width:${prog}%"></div>
+        <div style="background:#000;height:5px">
+          <div style="width:${prog}%;background:#22c55e;height:5px"></div>
         </div>
         <button onclick="pagar('${d.id}', ${d.parcelas_pagas})">Pagar</button>
       </div>
@@ -277,6 +226,13 @@ async function carregarDividas() {
   });
 }
 
+window.pagar = async (id, p) => {
+  await supabase.from("dividas")
+  .update({ parcelas_pagas: p + 1 }).eq("id", id);
+  carregarDividas();
+};
+
+// LOGOUT
 window.logout = async () => {
   await supabase.auth.signOut();
   location.reload();
